@@ -2,6 +2,8 @@
 // DANTE QUEST — Enemy Entities & Mass Horde AI
 // ============================================================================
 
+import { drawSprite, directionFromVector } from '../core/Sprites.js';
+
 export class Enemy {
   constructor(type = 'zombie', x = 0, y = 0, isElite = false) {
     this.type = type;
@@ -86,7 +88,7 @@ export class Enemy {
 
     if (this.damageFlashTimer > 0) this.damageFlashTimer -= dt;
     if (this.attackCooldownTimer > 0) this.attackCooldownTimer -= dt;
-    this.animTimer += dt * 8;
+    this.animTimer += dt;
 
     // 1. Target closest living player
     let target = null;
@@ -177,6 +179,30 @@ export class Enemy {
     ctx.fill();
 
     const isFlashing = this.damageFlashTimer > 0;
+    const dir = directionFromVector(this.vx, this.vy, this.facing > 0 ? 'east' : 'west');
+    const scale = this.isElite ? 1.3 : 1.0;
+    const drawn = drawSprite(ctx, `enemies/${this.type}`, this.x, this.y + this.radius, {
+      dir,
+      anim: 'walk',
+      time: this.animTimer,
+      tint: isFlashing ? '#ffffff' : null,
+      scale
+    });
+
+    if (drawn) {
+      // Health bar for Elites
+      if (this.isElite) {
+        const barW = 32;
+        const barH = 4;
+        const pct = Math.max(0, this.hp / this.maxHp);
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(this.x - barW / 2, this.y - this.radius - 12, barW, barH);
+        ctx.fillStyle = '#eab308';
+        ctx.fillRect(this.x - barW / 2, this.y - this.radius - 12, barW * pct, barH);
+      }
+      return;
+    }
+
     const bob = Math.sin(this.animTimer) * 2;
 
     ctx.save();

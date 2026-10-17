@@ -47,7 +47,25 @@ export const ALL_UPGRADES = [
     icon: '🏹',
     iconImg: '/assets/elven-recurve-bow-with-glowing-arrow-not-cmvbmutz.png',
     rarity: 'comun',
-    desc: 'Dispara flechas perforantes en ráfagas frontales rápidas.'
+    desc: 'Dispara flechas perforantes en ráfagas frontales rápidas que aumentan con nivel.'
+  },
+  {
+    id: 'bomba_magica',
+    name: 'Bombas Arcanas',
+    type: 'weapon',
+    icon: '🔮',
+    iconImg: '/assets/sprites/vfx/magic_bomb_sheet.png',
+    rarity: 'epica',
+    desc: 'Lanza orbes mágicos que detonan en devastadoras explosiones de área rúnicas.'
+  },
+  {
+    id: 'magia_misil',
+    name: 'Misiles Arcanos',
+    type: 'weapon',
+    icon: '✨',
+    iconImg: '/assets/sprites/vfx/arcane_missile_sheet.png',
+    rarity: 'rara',
+    desc: 'Conjura ráfagas de proyectiles mágicos teledirigidos que persiguen a los enemigos.'
   },
 
   // --- PASSIVES ---

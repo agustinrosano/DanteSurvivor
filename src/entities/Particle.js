@@ -7,6 +7,35 @@ export class ParticleSystem {
     this.particles = [];
     this.floatingTexts = [];
     this.slashes = []; // Arc swing animations
+    this.animatedVFX = []; // Frame-by-frame spritesheet VFX
+
+    // VFX Spritesheets
+    this.lightningSheet = new Image();
+    this.lightningSheet.src = '/assets/sprites/vfx/lightning_sheet.png';
+
+    this.bombSheet = new Image();
+    this.bombSheet.src = '/assets/sprites/vfx/magic_bomb_sheet.png';
+  }
+
+  addLightningStrike(x, y) {
+    this.animatedVFX.push({
+      type: 'lightning',
+      x: x,
+      y: y,
+      duration: 0.32,
+      timer: 0
+    });
+  }
+
+  addMagicExplosion(x, y, radius = 54) {
+    this.animatedVFX.push({
+      type: 'magic_explosion',
+      x: x,
+      y: y,
+      radius: radius,
+      duration: 0.42,
+      timer: 0
+    });
   }
 
   addFloatingText(x, y, text, color = '#ffffff', fontSize = 14, isCrit = false) {
@@ -111,6 +140,15 @@ export class ParticleSystem {
         this.slashes.splice(i, 1);
       }
     }
+
+    // 4. Update Animated VFX Spritesheets
+    for (let i = this.animatedVFX.length - 1; i >= 0; i--) {
+      const v = this.animatedVFX[i];
+      v.timer += dt;
+      if (v.timer >= v.duration) {
+        this.animatedVFX.splice(i, 1);
+      }
+    }
   }
 
   render(ctx, camera) {
@@ -146,7 +184,39 @@ export class ParticleSystem {
       ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
     }
 
-    // 3. Floating Damage Numbers
+    // 3. Animated VFX Spritesheets (Lightning strikes, Magic explosions)
+    for (const v of this.animatedVFX) {
+      if (!camera.isInView(v.x, v.y, 80)) continue;
+
+      if (v.type === 'lightning') {
+        const frame = Math.min(5, Math.floor((v.timer / v.duration) * 6));
+        if (this.lightningSheet.complete && this.lightningSheet.naturalWidth) {
+          // Draw lightning bolt coming down from sky (width 48, height 96)
+          ctx.save();
+          ctx.drawImage(
+            this.lightningSheet,
+            frame * 32, 0, 32, 64, // Source frame
+            v.x - 24, v.y - 82, 48, 96 // Centered on target, base strikes ground
+          );
+          ctx.restore();
+        }
+      } else if (v.type === 'magic_explosion') {
+        // Frames 2 to 5 for explosion ripple
+        const frame = Math.min(3, Math.floor((v.timer / v.duration) * 4)) + 2;
+        if (this.bombSheet.complete && this.bombSheet.naturalWidth) {
+          const r = v.radius || 54;
+          ctx.save();
+          ctx.drawImage(
+            this.bombSheet,
+            frame * 32, 0, 32, 32,
+            v.x - r, v.y - r, r * 2, r * 2
+          );
+          ctx.restore();
+        }
+      }
+    }
+
+    // 4. Floating Damage Numbers
     for (const t of this.floatingTexts) {
       if (!camera.isInView(t.x, t.y, 40)) continue;
       ctx.save();

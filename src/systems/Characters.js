@@ -12,8 +12,8 @@ export const CHARACTERS = {
     unlocked: true,
     cost: 0,
     weapon: 'espadon',
-    weaponName: 'Espadón de dos manos',
-    description: 'Guerrero poderoso y resistente, maestro del combate cuerpo a cuerpo y barridos masivos de espadón.',
+    weaponName: 'Espada larga',
+    description: 'Guerrero poderoso y resistente, maestro del combate cuerpo a cuerpo y barridos masivos de espada larga.',
     stats: {
       hp: 150,
       attack: 20,
@@ -104,7 +104,7 @@ export const CHARACTERS = {
     unlocked: true,
     cost: 200,
     weapon: 'cuchillas',
-    weaponName: 'Martillo y Escudo Sagrado',
+    weaponName: 'Mazo y Escudo Sagrado',
     description: 'Tanque impenetrable con armadura dorada bendecida, escudos giratorios y daño sagrado.',
     stats: {
       hp: 180,

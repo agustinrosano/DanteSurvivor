@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { CHARACTERS } from '../systems/Characters.js';
+import { drawSprite, directionFromVector } from '../core/Sprites.js';
 
 export class Player {
   constructor(id = 'local', charId = 'dante', x = 0, y = 0, isLocal = true) {
@@ -16,6 +17,8 @@ export class Player {
     this.vy = 0;
     this.radius = 16;
     this.facing = 1; // 1: Right, -1: Left
+    this.dir = 'south'; // 8-way sprite direction
+    this.animTime = 0;
 
     // Base & Modified Stats
     this.stats = { ...this.charData.stats };
@@ -148,7 +151,7 @@ export class Player {
       this.vy = this.dodgeDirY * dodgeSpeed;
 
       // Spawn trail ghost
-      this.dodgeTrails.push({ x: this.x, y: this.y, alpha: 0.6, facing: this.facing });
+      this.dodgeTrails.push({ x: this.x, y: this.y, alpha: 0.6, facing: this.facing, dir: this.dir });
 
       if (this.dodgeTimer <= 0) {
         this.isDodging = false;
@@ -166,11 +169,13 @@ export class Player {
       if (moveVector.x !== 0) {
         this.facing = moveVector.x > 0 ? 1 : -1;
       }
+      this.dir = directionFromVector(moveVector.x, moveVector.y, this.dir);
 
       if (this.vx !== 0 || this.vy !== 0) {
         this.walkAnimTimer += dt * 10;
       }
     }
+    this.animTime += dt;
 
     // 4. Update dodge trails decay
     for (let i = this.dodgeTrails.length - 1; i >= 0; i--) {
@@ -201,7 +206,9 @@ export class Player {
     for (const trail of this.dodgeTrails) {
       ctx.save();
       ctx.globalAlpha = Math.max(0, trail.alpha * 0.5);
-      this.drawHeroSprite(ctx, trail.x, trail.y, trail.facing, false, '#38bdf8');
+      if (!this.drawPixelSprite(ctx, trail.x, trail.y, trail.dir || this.dir, '#38bdf8')) {
+        this.drawHeroSprite(ctx, trail.x, trail.y, trail.facing, false, '#38bdf8');
+      }
       ctx.restore();
     }
 
@@ -213,7 +220,9 @@ export class Player {
 
     // Damage flash or normal render
     const isFlashing = this.damageFlashTimer > 0;
-    this.drawHeroSprite(ctx, this.x, this.y, this.facing, isFlashing);
+    if (!this.drawPixelSprite(ctx, this.x, this.y, this.dir, isFlashing ? '#ffffff' : null)) {
+      this.drawHeroSprite(ctx, this.x, this.y, this.facing, isFlashing);
+    }
 
     // Downed / Revival Ring
     if (this.isDowned) {
@@ -235,6 +244,18 @@ export class Player {
       ctx.textAlign = 'center';
       ctx.fillText('¡CAÍDO! (REVIVIR)', this.x, this.y - 32);
     }
+  }
+
+  // PixelLab sprite (feet at y + 16). Returns false if the sprite isn't available.
+  drawPixelSprite(ctx, x, y, dir, tint = null) {
+    const key = `heroes/${this.charData.id || 'dante'}`;
+    const moving = this.vx !== 0 || this.vy !== 0;
+    let anim = null;
+    if (this.isDowned) anim = 'death';
+    else if (this.attackAnimTimer > 0) anim = 'attack';
+    else if (moving) anim = 'walk';
+    else anim = 'idle';
+    return drawSprite(ctx, key, x, y + 16, { dir, anim, time: this.animTime, tint });
   }
 
   drawHeroSprite(ctx, x, y, facing, isFlashing, tintColor = null) {

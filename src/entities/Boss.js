@@ -2,6 +2,8 @@
 // DANTE QUEST — Epic Boss: El Rey de los Condenados (Multi-Phase Boss AI)
 // ============================================================================
 
+import { drawSprite, directionFromVector } from '../core/Sprites.js';
+
 export class Boss {
   constructor(x, y, playerCount = 1) {
     this.name = 'El Rey de los Condenados';
@@ -258,8 +260,19 @@ export class Boss {
     ctx.ellipse(this.x, this.y + 36, 44, 18, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // 4. Boss Sprite (Huge Dark Gothic King)
+    // 4. Boss Sprite (Huge Dark Gothic King / Mounted Knight)
     const isFlashing = this.damageFlashTimer > 0;
+    const dir = directionFromVector(this.vx, this.vy, this.facing > 0 ? 'east' : 'west');
+    const drawn = drawSprite(ctx, 'boss/mounted_knight', this.x, this.y + 36, {
+      dir,
+      anim: (this.vx !== 0 || this.vy !== 0) ? 'walk' : 'idle',
+      time: this.animTimer,
+      tint: isFlashing ? '#ffffff' : null,
+      scale: 1.15
+    });
+
+    if (drawn) return;
+
     const bob = Math.sin(this.animTimer) * 3;
 
     ctx.save();

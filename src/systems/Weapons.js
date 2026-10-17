@@ -5,6 +5,8 @@
 export class WeaponSystem {
   constructor() {
     this.orbitAngle = 0;
+    this.daggerImg = new Image();
+    this.daggerImg.src = '/assets/sprites/weapons/dagger.png';
   }
 
   update(dt, players, enemies, boss, projectiles, particles, sound, camera) {
@@ -46,6 +48,18 @@ export class WeaponSystem {
           const cooldown = Math.max(0.35, 1.0 - (w.level - 1) * 0.12);
           if (w.timer <= 0) {
             this.fireArco(player, w.level, enemies, boss, projectiles, sound);
+            w.timer = cooldown;
+          }
+        } else if (w.id === 'bomba_magica') {
+          const cooldown = Math.max(1.0, 2.5 - (w.level - 1) * 0.22);
+          if (w.timer <= 0) {
+            this.fireBombasMagicas(player, w.level, enemies, boss, projectiles, sound);
+            w.timer = cooldown;
+          }
+        } else if (w.id === 'magia_misil') {
+          const cooldown = Math.max(0.65, 1.8 - (w.level - 1) * 0.18);
+          if (w.timer <= 0) {
+            this.fireMisilesMagicos(player, w.level, enemies, boss, projectiles, sound);
             w.timer = cooldown;
           }
         }
@@ -157,11 +171,10 @@ export class WeaponSystem {
     }
   }
 
-  // --- 3. Bola de Fuego ---
+  // --- 3. Bola de Fuego (Lanza ráfagas de fuego animadas con spritesheet) ---
   fireBolaFuego(player, level, enemies, boss, projectiles, sound) {
-    // Find nearest enemy or boss
     let target = boss && boss.isAlive ? boss : null;
-    let minDist = 300;
+    let minDist = 320;
 
     for (const e of enemies) {
       if (!e.isAlive) continue;
@@ -172,32 +185,42 @@ export class WeaponSystem {
       }
     }
 
-    let dirX = player.facing;
-    let dirY = 0;
+    let baseAngle = player.facing > 0 ? 0 : Math.PI;
     if (target) {
-      const a = Math.atan2(target.y - player.y, target.x - player.x);
-      dirX = Math.cos(a);
-      dirY = Math.sin(a);
+      baseAngle = Math.atan2(target.y - player.y, target.x - player.x);
     }
 
-    const damage = Math.round(player.stats.attack * 1.2 + level * 10);
-    projectiles.spawn(player.x, player.y, dirX, dirY, 260, damage, 'fireball', 1, false);
+    // Cantidad de bolas de fuego aumenta con nivel (1 a 4)
+    const fireballCount = 1 + Math.floor(level / 2);
+    const damage = Math.round(player.stats.attack * 1.1 + level * 9);
+
+    for (let i = 0; i < fireballCount; i++) {
+      const spread = (i - (fireballCount - 1) / 2) * 0.22;
+      const angle = baseAngle + spread;
+      projectiles.spawn(
+        player.x, player.y,
+        Math.cos(angle), Math.sin(angle),
+        270, damage,
+        'fireball', 1, false,
+        { aoeRadius: 65 + level * 6 }
+      );
+    }
   }
 
-  // --- 4. Rayos Encadenados ---
+  // --- 4. Rayos Encadenados (Animación real spritesheet de relámpagos que caen del cielo) ---
   fireRayos(player, level, enemies, boss, particles, sound) {
-    const maxTargets = 2 + level;
-    let count = 0;
-    const damage = Math.round(player.stats.attack * 0.9 + level * 6);
+    // Cantidad de rayos aumenta drásticamente con el nivel (4 a 12 impactos)
+    const maxTargets = 2 + level * 2;
+    const damage = Math.round(player.stats.attack * 0.95 + level * 7);
 
     const targets = [];
-    if (boss && boss.isAlive && Math.hypot(boss.x - player.x, boss.y - player.y) < 220) {
+    if (boss && boss.isAlive && Math.hypot(boss.x - player.x, boss.y - player.y) < 280) {
       targets.push(boss);
     }
 
     for (const e of enemies) {
       if (!e.isAlive) continue;
-      if (Math.hypot(e.x - player.x, e.y - player.y) < 220) {
+      if (Math.hypot(e.x - player.x, e.y - player.y) < 280) {
         targets.push(e);
         if (targets.length >= maxTargets) break;
       }
@@ -205,8 +228,9 @@ export class WeaponSystem {
 
     for (const t of targets) {
       t.takeDamage(damage, particles);
-      particles.addFloatingText(t.x, t.y, `⚡${damage}`, '#38bdf8', 14, true);
-      particles.addSpark(t.x, t.y, '#38bdf8', 10);
+      // Animación fotograma a fotograma del spritesheet de rayo eléctrico
+      particles.addLightningStrike(t.x, t.y);
+      particles.addFloatingText(t.x, t.y, `⚡${damage}`, '#38bdf8', 15, true);
     }
 
     if (targets.length > 0) {
@@ -214,15 +238,75 @@ export class WeaponSystem {
     }
   }
 
-  // --- 5. Arco Largo ---
+  // --- 5. Arco Largo (Disparos en abanico perforantes que aumentan con nivel) ---
   fireArco(player, level, enemies, boss, projectiles, sound) {
-    const arrowCount = 1 + Math.floor(level / 2); // 1 to 3 arrows
+    const arrowCount = 1 + level; // 2 a 6 flechas perforantes
     const damage = Math.round(player.stats.attack * 0.75 + level * 5);
 
     for (let i = 0; i < arrowCount; i++) {
-      const spread = (i - (arrowCount - 1) / 2) * 0.15;
+      const spread = (i - (arrowCount - 1) / 2) * 0.16;
       const angle = (player.facing > 0 ? 0 : Math.PI) + spread;
-      projectiles.spawn(player.x, player.y, Math.cos(angle), Math.sin(angle), 340, damage, 'arrow', 2, false);
+      projectiles.spawn(player.x, player.y, Math.cos(angle), Math.sin(angle), 350, damage, 'arrow', 2, false);
+    }
+  }
+
+  // --- 6. Bombas de Magia (Orbes arcanos con trayectoria y spritesheet de onda expansiva) ---
+  fireBombasMagicas(player, level, enemies, boss, projectiles, sound) {
+    // Cantidad de bombas lanzadas aumenta con el nivel (1 a 4 bombas)
+    const bombCount = 1 + Math.floor(level / 2);
+    const damage = Math.round(player.stats.attack * 1.35 + level * 14);
+    const range = 200 + level * 12;
+
+    const nearbyTargets = enemies.filter(e => e.isAlive && Math.hypot(e.x - player.x, e.y - player.y) < range);
+    if (boss && boss.isAlive && Math.hypot(boss.x - player.x, boss.y - player.y) < range) {
+      nearbyTargets.unshift(boss);
+    }
+
+    for (let i = 0; i < bombCount; i++) {
+      let targetX, targetY;
+      if (nearbyTargets.length > 0) {
+        const picked = nearbyTargets[i % nearbyTargets.length];
+        targetX = picked.x + (Math.random() - 0.5) * 24;
+        targetY = picked.y + (Math.random() - 0.5) * 24;
+      } else {
+        const angle = Math.random() * Math.PI * 2;
+        const d = 90 + Math.random() * 90;
+        targetX = player.x + Math.cos(angle) * d;
+        targetY = player.y + Math.sin(angle) * d;
+      }
+
+      const dx = targetX - player.x;
+      const dy = targetY - player.y;
+      const dist = Math.hypot(dx, dy);
+      const throwSpeed = 230;
+      const throwTime = Math.max(0.42, Math.min(0.85, dist / throwSpeed));
+
+      projectiles.spawn(
+        player.x, player.y,
+        dx / Math.max(0.1, dist), dy / Math.max(0.1, dist),
+        throwSpeed, damage,
+        'magic_bomb', 1, false,
+        { targetX, targetY, life: throwTime, aoeRadius: 75 + level * 8 }
+      );
+    }
+  }
+
+  // --- 7. Magia Teledirigida (Misiles arcanos celestiales que persiguen enemigos) ---
+  fireMisilesMagicos(player, level, enemies, boss, projectiles, sound) {
+    // Cantidad de proyectiles teledirigidos aumenta con el nivel (4 a 12 misiles)
+    const missileCount = 2 + level * 2;
+    const damage = Math.round(player.stats.attack * 0.7 + level * 5);
+
+    for (let i = 0; i < missileCount; i++) {
+      const angle = (Math.PI * 2 / missileCount) * i + (Math.random() - 0.5) * 0.25;
+      projectiles.spawn(
+        player.x, player.y,
+        Math.cos(angle), Math.sin(angle),
+        250 + Math.random() * 40,
+        damage,
+        'magic_missile', 1, false,
+        { turnRate: 8.5 + level * 0.6 }
+      );
     }
   }
 
@@ -247,19 +331,24 @@ export class WeaponSystem {
           ctx.translate(bx, by);
           ctx.rotate(a + Math.PI / 2);
 
-          // Shining steel blade
-          ctx.fillStyle = '#e2e8f0';
-          ctx.beginPath();
-          ctx.moveTo(0, -12);
-          ctx.lineTo(4, 0);
-          ctx.lineTo(0, 12);
-          ctx.lineTo(-4, 0);
-          ctx.closePath();
-          ctx.fill();
+          if (this.daggerImg.complete && this.daggerImg.naturalWidth) {
+            // Draw pixel-art spinning dagger centered
+            ctx.drawImage(this.daggerImg, -16, -16, 32, 32);
+          } else {
+            // Shining steel blade fallback
+            ctx.fillStyle = '#e2e8f0';
+            ctx.beginPath();
+            ctx.moveTo(0, -12);
+            ctx.lineTo(4, 0);
+            ctx.lineTo(0, 12);
+            ctx.lineTo(-4, 0);
+            ctx.closePath();
+            ctx.fill();
 
-          ctx.strokeStyle = '#38bdf8';
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          }
 
           ctx.restore();
         }

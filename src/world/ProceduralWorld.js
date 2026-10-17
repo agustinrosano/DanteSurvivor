@@ -52,6 +52,9 @@ export class ProceduralWorld {
     this.torches = []; // Animated world lights: { x, y, lightRadius: 180 }
     this.cryptEntrance = { x: 300, y: -250, radius: 40, active: true }; // Portal to Diablo dungeon
     this.altar = { x: -400, y: 400, radius: 50, activated: false }; // Regional Altar to summon Boss!
+
+    this.lanternImg = new Image();
+    this.lanternImg.src = '/assets/sprites/props/lantern.png';
   }
 
   getChunkKey(cx, cy) {
@@ -285,22 +288,34 @@ export class ProceduralWorld {
           ctx.fillStyle = '#64748b';
           ctx.fillRect(obs.x - 6, obs.y - 16, 4, 18);
         } else if (obs.type === 'brazier') {
-          // Metal tripod
-          ctx.fillStyle = '#1e293b';
+          // Shadow
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
           ctx.beginPath();
-          ctx.arc(obs.x, obs.y, 10, 0, Math.PI * 2);
+          ctx.ellipse(obs.x, obs.y + 6, 14, 6, 0, 0, Math.PI * 2);
           ctx.fill();
 
-          // Dancing flame
-          const flameOffset = Math.sin(Date.now() * 0.01 + obs.x) * 3;
-          ctx.fillStyle = '#f59e0b';
-          ctx.beginPath();
-          ctx.arc(obs.x + flameOffset, obs.y - 8, 8, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = '#fef08a';
-          ctx.beginPath();
-          ctx.arc(obs.x + flameOffset, obs.y - 9, 4, 0, Math.PI * 2);
-          ctx.fill();
+          if (this.lanternImg.complete && this.lanternImg.naturalWidth) {
+            // Draw pixel-art lantern centered on base
+            const w = 32;
+            const h = 42;
+            ctx.drawImage(this.lanternImg, Math.round(obs.x - w / 2), Math.round(obs.y - h + 6), w, h);
+          } else {
+            // Fallback: Metal tripod & dancing flame
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.arc(obs.x, obs.y, 10, 0, Math.PI * 2);
+            ctx.fill();
+
+            const flameOffset = Math.sin(Date.now() * 0.01 + obs.x) * 3;
+            ctx.fillStyle = '#f59e0b';
+            ctx.beginPath();
+            ctx.arc(obs.x + flameOffset, obs.y - 8, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fef08a';
+            ctx.beginPath();
+            ctx.arc(obs.x + flameOffset, obs.y - 9, 4, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
       }
     }
