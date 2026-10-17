@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>DANTE QUEST — 2D Multiplayer Fantasy Survival RPG</title>
+  <meta name="description" content="RPG de acción y supervivencia 2D medieval oscuro. Lucha contra hordas, explora mazmorras procedurales y juega en cooperativo multijugador.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=MedievalSharp&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <div id="game-container">
+    <!-- Main Render Canvas -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- UI Overlay Layer -->
+    <div id="ui-layer">
+      <!-- HUD (Active during gameplay) -->
+      <div id="hud" class="hidden">
+        <!-- Top Bar: Player Stats & Timer -->
+        <div class="hud-top-bar">
+          <div class="player-hud-card">
+            <div class="avatar-box">
+              <img id="hud-avatar-img" src="/assets/dante-warrior-knight-in-shining-silver-p-cmvbmtru.png" alt="Hero">
+              <span id="hud-level-badge">LV 1</span>
+            </div>
+            <div class="bars-container">
+              <div class="stat-bar hp-bar">
+                <div class="bar-fill" id="hp-bar-fill" style="width: 100%;"></div>
+                <span class="bar-text" id="hp-text">150 / 150</span>
+              </div>
+              <div class="stat-bar xp-bar">
+                <div class="bar-fill" id="xp-bar-fill" style="width: 0%;"></div>
+                <span class="bar-text" id="xp-text">0 / 20 XP</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="timer-box">
+            <div class="timer-display" id="hud-timer">00:00</div>
+            <div class="timer-sub" id="hud-biome-name">Bosque de los Condenados</div>
+          </div>
+
+          <div class="kills-box">
+            <span class="kills-icon">💀</span>
+            <span class="kills-count" id="hud-kills">0</span>
+            <span class="gold-icon">🪙</span>
+            <span class="gold-count" id="hud-souls">0</span>
+          </div>
+        </div>
+
+        <!-- Co-op party status (if multiplayer) -->
+        <div id="party-hud-container" class="party-container"></div>
+
+        <!-- Boss Health Bar (Top Center) -->
+        <div id="boss-bar-container" class="boss-bar-container hidden">
+          <div class="boss-title">
+            <div class="boss-title-left">
+              <img src="/assets/the-king-of-the-damned-colossal-undead-k-cmvbm8ci.png" class="boss-hud-avatar" alt="Boss">
+              <span id="boss-name">EL REY DE LOS CONDENADOS</span>
+            </div>
+            <span id="boss-phase-badge">FASE 1</span>
+          </div>
+          <div class="boss-hp-bar">
+            <div class="boss-hp-fill" id="boss-hp-fill" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <!-- Active Weapons & Skills Quick-bar -->
+        <div class="weapons-bar" id="hud-weapons-bar"></div>
+
+        <!-- Minimap / Dungeon indicator -->
+        <div class="minimap-box" id="minimap-container">
+          <canvas id="minimap-canvas" width="120" height="120"></canvas>
+          <div class="minimap-label" id="minimap-label">Superficie</div>
+        </div>
+
+        <!-- Mobile Touch Controls -->
+        <div id="touch-controls" class="touch-controls hidden">
+          <div id="joystick-zone" class="joystick-zone">
+            <div id="joystick-base" class="joystick-base">
+              <div id="joystick-thumb" class="joystick-thumb"></div>
+            </div>
+          </div>
+          <div class="action-buttons-zone">
+            <button id="btn-touch-dodge" class="touch-btn dodge-btn" aria-label="Esquivar">
+              <span>ESQUIVAR</span>
+              <small>ESPACIO</small>
+            </button>
+            <button id="btn-touch-skill" class="touch-btn skill-btn" aria-label="Habilidad Especial">
+              <span>FURIA</span>
+              <small>Q</small>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Level Up Modal (3 Choices) -->
+      <div id="level-up-modal" class="modal-overlay hidden">
+        <div class="medieval-frame level-up-frame">
+          <h2 class="frame-title">¡SUBIDA DE NIVEL!</h2>
+          <p class="frame-subtitle">Selecciona una bendición o mejora para tu combate:</p>
+          <div class="upgrades-grid" id="upgrades-container"></div>
+        </div>
+      </div>
+
+      <!-- Main Menu Screen -->
+      <div id="menu-screen" class="screen-view active">
+        <div class="menu-content">
+          <div class="logo-wrapper">
+            <img class="game-logo-img" src="/assets/dante-quest-dark-fantasy-medieval-gothic-cmvbl6ca.png" alt="DANTE QUEST">
+            <h1 class="game-title-text">DANTE QUEST</h1>
+            <p class="game-tagline">2D Medieval Action Survival RPG</p>
+          </div>
+
+          <div class="menu-buttons">
+            <button id="btn-play-solo" class="medieval-btn btn-primary">
+              <span class="btn-icon">⚔️</span> JUGAR EN SOLITARIO
+            </button>
+            <button id="btn-multiplayer" class="medieval-btn btn-secondary">
+              <span class="btn-icon">👥</span> MULTIJUGADOR COOPERATIVO
+            </button>
+            <button id="btn-character-select" class="medieval-btn btn-secondary">
+              <span class="btn-icon">🛡️</span> SELECCIÓN DE HÉROE
+            </button>
+            <button id="btn-upgrades-meta" class="medieval-btn btn-secondary">
+              <span class="btn-icon">🔮</span> SANTUARIO DE MEJORAS
+            </button>
+            <button id="btn-sound-toggle" class="medieval-btn btn-tertiary">
+              <span id="sound-icon">🔊</span> SONIDO: ACTIVADO
+            </button>
+          </div>
+
+          <div class="controls-hint">
+            <p><strong>Controles PC:</strong> [W][A][S][D] Moverse | [ESPACIO] Esquivar | [Q] Habilidad especial</p>
+            <p><strong>Móvil / Android:</strong> Joystick táctil y botones en pantalla automáticos</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Character Selection Screen -->
+      <div id="character-screen" class="screen-view hidden">
+        <div class="character-select-container medieval-frame">
+          <h2 class="frame-title">SELECCIÓN DE HÉROE</h2>
+          <div class="roster-grid" id="roster-container"></div>
+          <div class="hero-details-panel" id="hero-details"></div>
+          <div class="screen-actions">
+            <button id="btn-char-back" class="medieval-btn btn-tertiary">VOLVER</button>
+            <button id="btn-char-confirm" class="medieval-btn btn-primary">SELECCIONAR HÉROE</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Multiplayer Lobby Screen -->
+      <div id="lobby-screen" class="screen-view hidden">
+        <div class="lobby-container medieval-frame">
+          <h2 class="frame-title">COOPERATIVO MULTIJUGADOR</h2>
+          <p class="frame-subtitle">Juega con amigos en PC y Android en tiempo real sin servidores complejos</p>
+
+          <div class="lobby-actions-row">
+            <div class="lobby-card">
+              <h3>CREAR SALA</h3>
+              <p>Inicia una partida como anfitrión y comparte el código:</p>
+              <button id="btn-host-room" class="medieval-btn btn-primary">CREAR SALA NUEVA</button>
+              <div id="host-code-display" class="room-code-badge hidden">
+                <span>CÓDIGO:</span> <strong id="room-code-text">----</strong>
+              </div>
+            </div>
+
+            <div class="lobby-card">
+              <h3>UNIRSE A SALA</h3>
+              <p>Introduce el código de 4 caracteres de tu compañero:</p>
+              <div class="join-input-group">
+                <input type="text" id="input-room-code" maxlength="6" placeholder="EJ: DNT4" uppercase>
+                <button id="btn-join-room" class="medieval-btn btn-secondary">UNIRSE</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="lobby-players-list" id="lobby-players-container">
+            <h3>JUGADORES EN SALA (1/4)</h3>
+            <div class="lobby-players-grid" id="lobby-players-grid"></div>
+          </div>
+
+          <div class="screen-actions">
+            <button id="btn-lobby-back" class="medieval-btn btn-tertiary">VOLVER</button>
+            <button id="btn-lobby-start" class="medieval-btn btn-primary hidden">INICIAR EXPEDICIÓN</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sanctuary / Permanent Upgrades Screen -->
+      <div id="sanctuary-screen" class="screen-view hidden">
+        <div class="sanctuary-container medieval-frame">
+          <h2 class="frame-title">SANTUARIO DE ALMAS</h2>
+          <div class="souls-banner">
+            <span>ALMAS DISPONIBLES: </span><strong id="sanctuary-souls-val">0</strong> 🪙
+          </div>
+          <div class="sanctuary-grid" id="sanctuary-grid"></div>
+          <div class="screen-actions">
+            <button id="btn-sanctuary-back" class="medieval-btn btn-tertiary">VOLVER</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Game Over / Victory Modal -->
+      <div id="end-game-modal" class="modal-overlay hidden">
+        <div class="medieval-frame end-game-frame">
+          <h2 id="end-game-title" class="frame-title text-defeat">HAS CAÍDO EN COMBATE</h2>
+          <p id="end-game-subtitle">El bosque reclama tu alma...</p>
+
+          <div class="end-stats-grid">
+            <div class="stat-card">
+              <span class="stat-label">TIEMPO SOBREVIVIDO</span>
+              <span class="stat-val" id="end-stat-time">00:00</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">ENEMIGOS ELIMINADOS</span>
+              <span class="stat-val" id="end-stat-kills">0</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">NIVEL ALCANZADO</span>
+              <span class="stat-val" id="end-stat-level">1</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">ALMAS OBTENIDAS</span>
+              <span class="stat-val" id="end-stat-souls">+0</span>
+            </div>
+          </div>
+
+          <div class="screen-actions">
+            <button id="btn-end-retry" class="medieval-btn btn-primary">REINTENTAR EXPEDICIÓN</button>
+            <button id="btn-end-menu" class="medieval-btn btn-tertiary">MENÚ PRINCIPAL</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
