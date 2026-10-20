@@ -9,6 +9,7 @@ export class InputSystem {
     this.joystick = { x: 0, y: 0, active: false };
     this.dodgeRequested = false;
     this.skillRequested = false;
+    this.pauseRequested = false;
 
     this.isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
@@ -25,6 +26,10 @@ export class InputSystem {
       }
       if (e.code === 'KeyQ' || e.code === 'KeyE') {
         this.skillRequested = true;
+      }
+      if (e.code === 'KeyP' || e.code === 'Escape') {
+        this.pauseRequested = true;
+        e.preventDefault();
       }
     });
 
@@ -165,6 +170,12 @@ export class InputSystem {
   consumeSkill() {
     const requested = this.skillRequested;
     this.skillRequested = false;
+    return requested;
+  }
+
+  consumePause() {
+    const requested = this.pauseRequested;
+    this.pauseRequested = false;
     return requested;
   }
 }

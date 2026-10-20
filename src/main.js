@@ -32,6 +32,25 @@ window.addEventListener('DOMContentLoaded', () => {
 
   engine = new GameEngine(canvas, hud, menus);
 
+  // HUD Pause Button Listener (Desktop and Mobile)
+  const btnHudPause = document.getElementById('btn-hud-pause');
+  if (btnHudPause) {
+    let lastPauseTime = 0;
+    const handlePause = (e) => {
+      e.stopPropagation();
+      if (e.cancelable && e.type === 'touchstart') {
+        e.preventDefault();
+      }
+      const now = performance.now();
+      if (now - lastPauseTime < 350) return;
+      lastPauseTime = now;
+      if (engine) engine.togglePause();
+    };
+
+    btnHudPause.addEventListener('click', handlePause);
+    btnHudPause.addEventListener('touchstart', handlePause, { passive: false });
+  }
+
   // Setup Multiplayer Lobby
   function setupLobbyUI() {
     const btnHost = document.getElementById('btn-host-room');

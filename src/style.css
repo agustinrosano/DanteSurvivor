@@ -428,6 +428,67 @@ html, body {
   color: var(--souls-gold);
 }
 
+.hud-pause-btn {
+  background: rgba(22, 18, 30, 0.9);
+  border: 1px solid var(--gold-primary);
+  color: var(--gold-light);
+  border-radius: 6px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  cursor: pointer;
+  margin-left: 10px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.hud-pause-btn:hover, .hud-pause-btn:active {
+  background: rgba(230, 184, 73, 0.3);
+  transform: scale(1.08);
+  border-color: #fde047;
+}
+
+.pause-frame {
+  max-width: 380px;
+  width: 90%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  padding: 30px 24px;
+}
+
+.pause-menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.btn-danger {
+  background: linear-gradient(180deg, #7f1d1d, #450a0a);
+  border-color: #b91c1c;
+  color: #fecaca;
+}
+
+.btn-danger:hover {
+  background: linear-gradient(180deg, #991b1b, #5a0c0c);
+  border-color: #ef4444;
+}
+
+@media (max-width: 768px) {
+  .hud-pause-btn {
+    width: 42px;
+    height: 42px;
+    font-size: 1.35rem;
+  }
+}
+
 /* ==========================================================================
    Boss Health Bar
    ========================================================================== */
@@ -1304,6 +1365,67 @@ html, body {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  #hud {
+    padding: 8px 10px;
+  }
+  .hud-top-bar {
+    gap: 6px;
+    align-items: center;
+  }
+  .player-hud-card {
+    padding: 4px 8px;
+    gap: 8px;
+  }
+  .avatar-box {
+    width: 38px;
+    height: 38px;
+  }
+  .bars-container {
+    min-width: 100px;
+    max-width: 130px;
+    gap: 3px;
+  }
+  .stat-bar {
+    height: 13px;
+  }
+  .bar-text {
+    font-size: 0.62rem;
+  }
+  .timer-box {
+    padding: 4px 8px;
+  }
+  .timer-display {
+    font-size: 1.15rem;
+  }
+  .timer-sub {
+    font-size: 0.65rem;
+  }
+  .kills-box {
+    padding: 4px 8px;
+    font-size: 0.95rem;
+    gap: 6px;
+  }
+  .kills-count {
+    margin-right: 6px;
+  }
+  .hud-pause-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 1.35rem;
+    margin-left: 6px;
+    border-radius: 8px;
+    border-width: 2px;
+    background: rgba(30, 24, 42, 0.95);
+    box-shadow: 0 0 10px rgba(230, 184, 73, 0.35);
+  }
+  .hud-pause-btn:active {
+    transform: scale(0.92);
+    background: rgba(230, 184, 73, 0.5);
+  }
+  .pause-frame {
+    width: 92%;
+    padding: 24px 16px;
+  }
   .maps-grid {
     grid-template-columns: 1fr;
     max-height: 50vh;

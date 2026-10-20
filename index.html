@@ -48,6 +48,7 @@
             <span class="kills-count" id="hud-kills">0</span>
             <span class="gold-icon">🪙</span>
             <span class="gold-count" id="hud-souls">0</span>
+            <button id="btn-hud-pause" class="hud-pause-btn" aria-label="Pausa" title="Pausar juego [P] / [ESC]">⏸️</button>
           </div>
         </div>
 
@@ -106,6 +107,25 @@
         </div>
       </div>
 
+      <!-- Pause Modal -->
+      <div id="pause-modal" class="modal-overlay hidden">
+        <div class="medieval-frame pause-frame">
+          <h2 class="frame-title">⏸️ JUEGO EN PAUSA</h2>
+          <p class="frame-subtitle">La batalla está detenida temporalmente.</p>
+          <div class="pause-menu-buttons">
+            <button id="btn-pause-resume" class="medieval-btn btn-primary">
+              <span class="btn-icon">▶️</span> REANUDAR
+            </button>
+            <button id="btn-pause-sound" class="medieval-btn btn-secondary">
+              <span id="pause-sound-icon">🔊</span> SONIDO: ACTIVADO
+            </button>
+            <button id="btn-pause-quit" class="medieval-btn btn-danger">
+              <span class="btn-icon">🚪</span> ABANDONAR PARTIDA
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Main Menu Screen -->
       <div id="menu-screen" class="screen-view active">
         <div class="menu-content">
@@ -134,8 +154,8 @@
           </div>
 
           <div class="controls-hint">
-            <p><strong>Controles PC:</strong> [W][A][S][D] Moverse | [ESPACIO] Esquivar | [Q] Habilidad especial</p>
-            <p><strong>Móvil / Android:</strong> Joystick táctil y botones en pantalla automáticos</p>
+            <p><strong>Controles PC:</strong> [W][A][S][D] Moverse | [ESPACIO] Esquivar | [Q] Habilidad | [P] / [ESC] Pausa</p>
+            <p><strong>Móvil / Android:</strong> Joystick táctil y botón de pausa ⏸️ en el HUD</p>
           </div>
         </div>
       </div>

@@ -106,6 +106,12 @@ export class GameEngine {
     const dt = Math.min(0.1, (currentTime - this.lastTime) / 1000);
     this.lastTime = currentTime;
 
+    // Allow toggling pause with keyboard (P / Escape)
+    if (this.input.consumePause()) {
+      this.togglePause();
+      return;
+    }
+
     if (this.isPaused) return;
 
     this.gameTime += dt;
@@ -397,6 +403,32 @@ export class GameEngine {
     this.localPlayer.y = returnPt.y;
     this.enemies = [];
     this.particles.addFloatingText(this.localPlayer.x, this.localPlayer.y - 30, '⚡ REGRESO A LA SUPERFICIE ⚡', '#38bdf8', 18);
+  }
+
+  togglePause() {
+    if (!this.isPlaying) return;
+    this.isPaused = !this.isPaused;
+    if (this.isPaused) {
+      this.menus.showPause(
+        () => {
+          this.isPaused = false;
+          this.lastTime = performance.now();
+          this.menus.hidePause();
+        },
+        () => {
+          this.isPaused = false;
+          this.menus.hidePause();
+          this.isPlaying = false;
+          this.menus.showScreen(this.menus.screenMenu);
+        },
+        () => {
+          return sound.toggleSound();
+        }
+      );
+    } else {
+      this.lastTime = performance.now();
+      this.menus.hidePause();
+    }
   }
 
   triggerLevelUp(player) {

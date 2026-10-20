@@ -18,6 +18,7 @@ export class MenuSystem {
     this.hud = document.getElementById('hud');
     this.levelUpModal = document.getElementById('level-up-modal');
     this.endGameModal = document.getElementById('end-game-modal');
+    this.pauseModal = document.getElementById('pause-modal');
 
     // Stepper elements
     this.stepTabHero = document.getElementById('step-tab-hero');
@@ -42,6 +43,7 @@ export class MenuSystem {
     if (this.hud) this.hud.classList.add('hidden');
     if (this.levelUpModal) this.levelUpModal.classList.add('hidden');
     if (this.endGameModal) this.endGameModal.classList.add('hidden');
+    if (this.pauseModal) this.pauseModal.classList.add('hidden');
 
     if (screen) screen.classList.remove('hidden');
   }
@@ -355,5 +357,38 @@ export class MenuSystem {
     document.getElementById('end-stat-souls').textContent = `+${souls} 🪙`;
 
     this.endGameModal.classList.remove('hidden');
+  }
+
+  showPause(onResume, onQuit, onToggleSound) {
+    if (!this.pauseModal) this.pauseModal = document.getElementById('pause-modal');
+    if (!this.pauseModal) return;
+
+    this.pauseModal.classList.remove('hidden');
+
+    const btnResume = document.getElementById('btn-pause-resume');
+    const btnQuit = document.getElementById('btn-pause-quit');
+    const btnSound = document.getElementById('btn-pause-sound');
+    const soundIcon = document.getElementById('pause-sound-icon');
+
+    if (btnResume) {
+      btnResume.onclick = () => onResume && onResume();
+    }
+    if (btnQuit) {
+      btnQuit.onclick = () => onQuit && onQuit();
+    }
+    if (btnSound) {
+      btnSound.onclick = () => {
+        const isEnabled = onToggleSound && onToggleSound();
+        if (soundIcon) soundIcon.textContent = isEnabled ? '🔊' : '🔇';
+        btnSound.innerHTML = `<span id="pause-sound-icon">${isEnabled ? '🔊' : '🔇'}</span> SONIDO: ${isEnabled ? 'ACTIVADO' : 'MUTED'}`;
+      };
+    }
+  }
+
+  hidePause() {
+    if (!this.pauseModal) this.pauseModal = document.getElementById('pause-modal');
+    if (this.pauseModal) {
+      this.pauseModal.classList.add('hidden');
+    }
   }
 }
