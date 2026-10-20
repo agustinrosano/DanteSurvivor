@@ -25,7 +25,8 @@ export const SPRITE_MANIFEST = {
     anchorY: 0.80,
     rotations: ALL8,
     anims: {
-      walk: { dirs: ['south', 'east', 'north'], frames: 8, fps: 10, loop: true }
+      walk: { dirs: ['south', 'east', 'north'], frames: 8, fps: 10, loop: true },
+      attack: { dirs: ['south', 'east'], frames: 9, fps: 18, loop: false }
     }
   },
   'heroes/thorin': {
@@ -33,7 +34,8 @@ export const SPRITE_MANIFEST = {
     anchorY: 0.80,
     rotations: ALL8,
     anims: {
-      walk: { dirs: ['south'], frames: 8, fps: 8, loop: true }
+      walk: { dirs: ['south'], frames: 8, fps: 8, loop: true },
+      attack: { dirs: ['south'], frames: 9, fps: 16, loop: false }
     }
   },
   'heroes/lyra': {
@@ -41,7 +43,8 @@ export const SPRITE_MANIFEST = {
     anchorY: 0.80,
     rotations: ALL8,
     anims: {
-      walk: { dirs: ['south'], frames: 8, fps: 8, loop: true }
+      walk: { dirs: ['south'], frames: 8, fps: 8, loop: true },
+      attack: { dirs: ['south'], frames: 9, fps: 16, loop: false }
     }
   },
   'heroes/kael': {
@@ -49,7 +52,8 @@ export const SPRITE_MANIFEST = {
     anchorY: 0.80,
     rotations: ALL8,
     anims: {
-      walk: { dirs: ['south'], frames: 8, fps: 8, loop: true }
+      walk: { dirs: ['south'], frames: 8, fps: 8, loop: true },
+      attack: { dirs: ['south'], frames: 9, fps: 16, loop: false }
     }
   },
   'heroes/morgana': {
@@ -57,7 +61,8 @@ export const SPRITE_MANIFEST = {
     anchorY: 0.80,
     rotations: ALL8,
     anims: {
-      walk: { dirs: ['south'], frames: 8, fps: 8, loop: true }
+      walk: { dirs: ['south'], frames: 8, fps: 8, loop: true },
+      attack: { dirs: ['south'], frames: 9, fps: 16, loop: false }
     }
   },
 

@@ -51,7 +51,16 @@ export class ProceduralWorld {
 
     this.loadedChunks = new Map(); // key "cx,cy" -> chunk data
     this.torches = []; // Animated world lights: { x, y, lightRadius: 180 }
-    this.cryptEntrance = { x: 300, y: -250, radius: 40, active: true }; // Portal to Diablo dungeon
+    this.surfaceChests = []; // Rare surface treasure chests
+
+    const isLimbo = this.mapId === 'limbo';
+    this.dungeonEntrances = [
+      { id: 'crypt_1', name: isLimbo ? 'Vórtice de las Sombras' : 'Cripta Maldita', x: 350, y: -280, radius: 42, seed: this.seed + 101, dungeonLevel: 1 },
+      { id: 'crypt_2', name: isLimbo ? 'Sagrario Astral' : 'Catacumbas del Olvido', x: -750, y: -450, radius: 42, seed: this.seed + 202, dungeonLevel: 2 },
+      { id: 'crypt_3', name: isLimbo ? 'Abismo del Vacío' : 'Fosa de los Herejes', x: 700, y: 720, radius: 42, seed: this.seed + 303, dungeonLevel: 3 },
+      { id: 'crypt_4', name: isLimbo ? 'Pórtico del Destino' : 'Sepulcro Antiguo', x: -650, y: 680, radius: 42, seed: this.seed + 404, dungeonLevel: 4 }
+    ];
+    this.cryptEntrance = this.dungeonEntrances[0]; // Backwards compatibility
     this.altar = { x: -400, y: 400, radius: 50, activated: false }; // Regional Altar to summon Boss!
 
     this.lanternImg = new Image();
@@ -85,8 +94,9 @@ export class ProceduralWorld {
     // Unload chunks far away to maintain 60 FPS
     for (const [key, chunk] of this.loadedChunks.entries()) {
       if (!activeKeys.has(key)) {
-        // Remove torches of this chunk
+        // Remove torches and chests of this chunk
         this.torches = this.torches.filter(t => t.chunkKey !== key);
+        this.surfaceChests = this.surfaceChests.filter(c => c.chunkKey !== key);
         this.loadedChunks.delete(key);
       }
     }
@@ -218,6 +228,23 @@ export class ProceduralWorld {
           }
         }
       }
+    }
+
+    // Rare surface chests (few scattered in the world, far from center)
+    const distCenter = Math.hypot(cx * this.chunkPx, cy * this.chunkPx);
+    if (rng() < 0.12 && distCenter > 320) {
+      const tx = 3 + Math.floor(rng() * 10);
+      const ty = 3 + Math.floor(rng() * 10);
+      const chestX = (cx * this.chunkSize + tx) * this.tileSize + this.tileSize / 2;
+      const chestY = (cy * this.chunkSize + ty) * this.tileSize + this.tileSize / 2;
+      this.surfaceChests.push({
+        x: chestX,
+        y: chestY,
+        radius: 22,
+        opened: false,
+        chunkKey: this.getChunkKey(cx, cy),
+        lootValue: 35 + Math.floor(rng() * 25)
+      });
     }
 
     return { cx, cy, biome, tiles, obstacles };
@@ -490,9 +517,10 @@ export class ProceduralWorld {
   renderLandmarks(ctx, camera) {
     const isLimbo = this.mapId === 'limbo';
 
-    // Portal (Crypt in Forest, Vórtice Abisal in Limbo)
-    const crypt = this.cryptEntrance;
-    if (camera.isInView(crypt.x, crypt.y, 80)) {
+    // 1. Multiple Dungeon / Crypt Entrances
+    for (const crypt of (this.dungeonEntrances || [this.cryptEntrance])) {
+      if (!camera.isInView(crypt.x, crypt.y, 80)) continue;
+
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
       ctx.beginPath();
       ctx.ellipse(crypt.x, crypt.y + 10, 48, 24, 0, 0, Math.PI * 2);
@@ -526,12 +554,12 @@ export class ProceduralWorld {
         ctx.fillStyle = '#c084fc';
         ctx.font = '10px Cinzel, serif';
         ctx.textAlign = 'center';
-        ctx.fillText('🌌 VÓRTICE ABISAL 🌌', crypt.x, crypt.y - 44);
+        ctx.fillText(`🌌 ${crypt.name.toUpperCase()} 🌌`, crypt.x, crypt.y - 44);
         ctx.fillStyle = '#38bdf8';
         ctx.fillText('[ CRUZAR UMBRAL ]', crypt.x, crypt.y + 36);
 
       } else {
-        // Stone archway
+        // Gothic stone archway
         ctx.fillStyle = '#334155';
         ctx.beginPath();
         ctx.arc(crypt.x, crypt.y - 10, 36, Math.PI, 0);
@@ -549,13 +577,51 @@ export class ProceduralWorld {
         ctx.closePath();
         ctx.fill();
 
-        // Glowing runes
+        // Glowing runes & Title
         ctx.fillStyle = '#a855f7';
         ctx.font = '10px Cinzel, serif';
         ctx.textAlign = 'center';
-        ctx.fillText('⚡ CRIPTA MALDITA ⚡', crypt.x, crypt.y - 44);
+        ctx.fillText(`⚡ ${crypt.name.toUpperCase()} ⚡`, crypt.x, crypt.y - 44);
         ctx.fillStyle = '#c084fc';
         ctx.fillText('[ ENTRAR ]', crypt.x, crypt.y + 30);
+      }
+    }
+
+    // 2. Rare Surface Treasure Chests
+    for (const chest of (this.surfaceChests || [])) {
+      if (!camera.isInView(chest.x, chest.y, 50)) continue;
+
+      // Ground shadow
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      ctx.beginPath();
+      ctx.ellipse(chest.x, chest.y + 8, 20, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Chest Body (Wood & Golden Trim)
+      ctx.fillStyle = chest.opened ? '#475569' : '#854d0e';
+      ctx.fillRect(chest.x - 14, chest.y - 10, 28, 18);
+      ctx.fillStyle = chest.opened ? '#334155' : '#a16207';
+      ctx.fillRect(chest.x - 12, chest.y - 8, 24, 14);
+
+      // Gold Corners & Iron Lock
+      ctx.fillStyle = chest.opened ? '#64748b' : '#e6b849';
+      ctx.fillRect(chest.x - 14, chest.y - 10, 3, 18);
+      ctx.fillRect(chest.x + 11, chest.y - 10, 3, 18);
+      ctx.fillRect(chest.x - 14, chest.y - 2, 28, 3);
+
+      if (!chest.opened) {
+        // Glowing Golden Keyhole
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(chest.x - 3, chest.y - 4, 6, 6);
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(chest.x - 1, chest.y - 3, 2, 4);
+
+        // Pulsing Floating Prompt
+        const pulse = 0.7 + Math.sin(Date.now() * 0.005 + chest.x) * 0.3;
+        ctx.fillStyle = `rgba(250, 204, 21, ${pulse})`;
+        ctx.font = '9px Cinzel, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('✨ COFRE ANCESTRAL ✨', chest.x, chest.y - 16);
       }
     }
 

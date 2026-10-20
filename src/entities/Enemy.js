@@ -50,6 +50,39 @@ export class Enemy {
       this.radius = isElite ? 22 : 15;
       this.xpValue = isElite ? 20 : 4;
       this.phasesThroughWalls = true;
+    } else if (type === 'vampire') {
+      // Vampiro Sombrío (rápido, drena vida al golpear)
+      this.hp = isElite ? 240 : 45;
+      this.maxHp = this.hp;
+      this.speed = isElite ? 160 : 135;
+      this.damage = 18;
+      this.radius = isElite ? 22 : 15;
+      this.xpValue = isElite ? 24 : 5;
+    } else if (type === 'plant') {
+      // Planta Carnívora / Espina Maldita (resistente, pesada, daño de espinas)
+      this.hp = isElite ? 320 : 70;
+      this.maxHp = this.hp;
+      this.speed = isElite ? 60 : 42;
+      this.damage = 16;
+      this.radius = isElite ? 26 : 18;
+      this.xpValue = isElite ? 22 : 4;
+    } else if (type === 'slime') {
+      // Ameba / Slime estilo Dragon Quest en paleta oscura
+      this.hp = isElite ? 120 : 22;
+      this.maxHp = this.hp;
+      this.speed = isElite ? 120 : 95;
+      this.damage = 9;
+      this.radius = isElite ? 20 : 13;
+      this.xpValue = isElite ? 10 : 2;
+    } else if (type === 'demon') {
+      // Demonio menor estilo Dragon Quest (alado, cornudo, con tridente)
+      this.hp = isElite ? 180 : 38;
+      this.maxHp = this.hp;
+      this.speed = isElite ? 140 : 115;
+      this.damage = 15;
+      this.radius = isElite ? 20 : 14;
+      this.xpValue = isElite ? 18 : 4;
+      this.phasesThroughWalls = true; // Vuela sobre muros
     } else {
       // Zombie (Caminante Putrefacto)
       this.hp = isElite ? 200 : 25;
@@ -157,6 +190,10 @@ export class Enemy {
     const distToTarget = Math.hypot(target.x - this.x, target.y - this.y);
     if (distToTarget < this.radius + target.radius && this.attackCooldownTimer <= 0) {
       target.takeDamage(this.damage);
+      // Vampiro drena vida
+      if (this.type === 'vampire') {
+        this.hp = Math.min(this.maxHp, this.hp + 6);
+      }
       this.attackCooldownTimer = 0.8; // 0.8s between bites/strikes
     }
   }
@@ -258,6 +295,210 @@ export class Enemy {
       ctx.fill();
       ctx.fillStyle = '#fbcfe8';
       ctx.fillRect(2, -9 + bob, 3, 2);
+    } else if (this.type === 'vampire') {
+      // Vampiro Sombrío (Capa carmesí, ojos rojos, garras oscuras)
+      const capeFlutter = Math.sin(this.animTimer * 6) * 3;
+      // Capa carmesí
+      ctx.fillStyle = isFlashing ? '#ffffff' : '#7f1d1d';
+      ctx.beginPath();
+      ctx.moveTo(-7, -14 + bob);
+      ctx.lineTo(8, -14 + bob);
+      ctx.lineTo(12 + capeFlutter, 10 + bob);
+      ctx.lineTo(-12 - capeFlutter, 10 + bob);
+      ctx.closePath();
+      ctx.fill();
+
+      // Cuello alto gótico de vampiro
+      ctx.fillStyle = isFlashing ? '#ffffff' : '#991b1b';
+      ctx.fillRect(-8, -16 + bob, 16, 4);
+
+      // Traje aristocrático oscuro
+      ctx.fillStyle = isFlashing ? '#ffffff' : '#18181b';
+      ctx.fillRect(-5, -10 + bob, 10, 14);
+
+      // Rostro pálido cadavérico
+      ctx.fillStyle = isFlashing ? '#ffffff' : '#e4e4e7';
+      ctx.beginPath();
+      ctx.arc(0, -14 + bob, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Ojos escarlata brillante
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(1, -15 + bob, 2.5, 2);
+
+      // Colmillos afilados
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, -11 + bob, 1.5, 2);
+      ctx.fillRect(3, -11 + bob, 1.5, 2);
+
+    } else if (this.type === 'plant') {
+      // Planta Carnívora / Espina Maldita
+      const snap = Math.sin(this.animTimer * 5);
+      // Raíces y vides espinosas
+      ctx.fillStyle = isFlashing ? '#ffffff' : '#14532d';
+      ctx.beginPath();
+      ctx.ellipse(0, 8 + bob, 16, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Tallo oscuro con espinas
+      ctx.fillStyle = isFlashing ? '#ffffff' : '#166534';
+      ctx.fillRect(-3, -8 + bob, 6, 16);
+
+      // Mandíbula carnívora superior (boca que abre y cierra)
+      ctx.fillStyle = isFlashing ? '#ffffff' : '#831843';
+      ctx.beginPath();
+      ctx.arc(0, -10 + bob + snap * 2, 11, Math.PI, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      // Mandíbula carnívora inferior
+      ctx.fillStyle = isFlashing ? '#ffffff' : '#9d174d';
+      ctx.beginPath();
+      ctx.arc(0, -6 + bob - snap * 2, 11, 0, Math.PI);
+      ctx.closePath();
+      ctx.fill();
+
+      // Dientes afilados de la trampa
+      ctx.fillStyle = '#f8fafc';
+      for (let d = -8; d <= 8; d += 4) {
+        ctx.fillRect(d, -10 + bob + snap * 2, 2, 3);
+        ctx.fillRect(d, -8 + bob - snap * 2, 2, 3);
+      }
+
+      // Ojo/Pétalo tóxico violeta brillante
+      ctx.fillStyle = '#c084fc';
+      ctx.beginPath();
+      ctx.arc(2, -14 + bob, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+    } else if (this.type === 'slime') {
+      // Ameba / Slime estilo Dragon Quest (silueta de gota con ojos saltones y sonrisa)
+      const hop = Math.abs(Math.sin(this.animTimer * 5));
+      const squish = (hop - 0.5) * 0.3; // Squash & stretch
+
+      ctx.save();
+      ctx.scale(1 + squish, 1 - squish);
+
+      // Cuerpo en forma de lágrima/gota
+      ctx.fillStyle = isFlashing ? '#ffffff' : '#1e3a8a';
+      ctx.beginPath();
+      ctx.moveTo(0, -18 + bob);
+      ctx.bezierCurveTo(14, -6 + bob, 15, 8 + bob, 0, 8 + bob);
+      ctx.bezierCurveTo(-15, 8 + bob, -14, -6 + bob, 0, -18 + bob);
+      ctx.closePath();
+      ctx.fill();
+
+      // Brillo interior traslúcido
+      ctx.fillStyle = isFlashing ? '#ffffff' : '#3b82f6';
+      ctx.beginPath();
+      ctx.arc(-2, -4 + bob, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Ojos saltones estilo Dragon Quest (grandes círculos blancos con pupilas negras)
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(-3, -2 + bob, 3.5, 0, Math.PI * 2);
+      ctx.arc(5, -2 + bob, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Pupilas orientadas hacia adelante
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.arc(-2, -2 + bob, 1.8, 0, Math.PI * 2);
+      ctx.arc(6, -2 + bob, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Sonrisa picara estilo DQ
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(1, 1 + bob, 4, 0.1 * Math.PI, 0.9 * Math.PI);
+      ctx.stroke();
+
+      ctx.restore();
+
+    } else if (this.type === 'demon') {
+      // Demonio menor estilo Dragon Quest (diablillo cornudo con alas de murciélago y tridente)
+      const wingFlap = Math.sin(this.animTimer * 8) * 4;
+
+      // Alas de murciélago moradas/oscuras
+      ctx.fillStyle = isFlashing ? '#ffffff' : '#4c1d95';
+      ctx.beginPath();
+      ctx.moveTo(-4, -6 + bob);
+      ctx.lineTo(-18, -16 + bob + wingFlap);
+      ctx.lineTo(-12, 0 + bob);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(4, -6 + bob);
+      ctx.lineTo(18, -16 + bob + wingFlap);
+      ctx.lineTo(12, 0 + bob);
+      ctx.closePath();
+      ctx.fill();
+
+      // Cola puntiaguda de diablo
+      ctx.strokeStyle = '#b91c1c';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-4, 4 + bob);
+      ctx.quadraticCurveTo(-14, 8 + bob, -16, 0 + bob);
+      ctx.stroke();
+      // Flecha de la cola
+      ctx.fillStyle = '#b91c1c';
+      ctx.beginPath();
+      ctx.moveTo(-16, 0 + bob);
+      ctx.lineTo(-13, -3 + bob);
+      ctx.lineTo(-13, 3 + bob);
+      ctx.closePath();
+      ctx.fill();
+
+      // Cuerpo rechoncho diablesco (rojo/púrpura)
+      ctx.fillStyle = isFlashing ? '#ffffff' : '#b91c1c';
+      ctx.beginPath();
+      ctx.arc(0, -2 + bob, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Cabeza diablilla
+      ctx.beginPath();
+      ctx.arc(0, -10 + bob, 7, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Cuernos afilados amarillos
+      ctx.fillStyle = isFlashing ? '#ffffff' : '#fbbf24';
+      ctx.beginPath();
+      ctx.moveTo(-4, -15 + bob);
+      ctx.lineTo(-7, -22 + bob);
+      ctx.lineTo(-2, -16 + bob);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(4, -15 + bob);
+      ctx.lineTo(7, -22 + bob);
+      ctx.lineTo(2, -16 + bob);
+      ctx.closePath();
+      ctx.fill();
+
+      // Ojos amarillos con pupilas verticales
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(0, -12 + bob, 3, 3);
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(1, -12 + bob, 1.5, 3);
+
+      // Pequeño tridente dorado
+      ctx.strokeStyle = '#d97706';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(8, -16 + bob);
+      ctx.lineTo(8, 10 + bob);
+      ctx.stroke();
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(6, -18 + bob, 5, 2);
+      ctx.fillRect(5, -20 + bob, 2, 4);
+      ctx.fillRect(8, -21 + bob, 2, 5);
+      ctx.fillRect(10, -20 + bob, 2, 4);
+
     } else {
       // Default: Zombie (Caminante Putrefacto)
       // Torso with rotting clothes

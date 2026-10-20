@@ -113,14 +113,32 @@ export class HUDSystem {
     const cy = h / 2;
 
     if (!isDungeon && world) {
-      // Draw Crypt Entrance
-      const cryptX = cx + (world.cryptEntrance.x - player.x) * scale;
-      const cryptY = cy + (world.cryptEntrance.y - player.y) * scale;
-      if (cryptX >= 0 && cryptX <= w && cryptY >= 0 && cryptY <= h) {
-        mCtx.fillStyle = '#38bdf8';
-        mCtx.beginPath();
-        mCtx.arc(cryptX, cryptY, 4, 0, Math.PI * 2);
-        mCtx.fill();
+      // Draw All Crypt Entrances
+      const entrances = world.dungeonEntrances || [world.cryptEntrance];
+      for (const ent of entrances) {
+        const entX = cx + (ent.x - player.x) * scale;
+        const entY = cy + (ent.y - player.y) * scale;
+        if (entX >= 0 && entX <= w && entY >= 0 && entY <= h) {
+          mCtx.fillStyle = '#38bdf8';
+          mCtx.beginPath();
+          mCtx.arc(entX, entY, 3.5, 0, Math.PI * 2);
+          mCtx.fill();
+        }
+      }
+
+      // Draw Surface Chests (golden dots)
+      if (world.surfaceChests) {
+        for (const chest of world.surfaceChests) {
+          if (chest.opened) continue;
+          const chX = cx + (chest.x - player.x) * scale;
+          const chY = cy + (chest.y - player.y) * scale;
+          if (chX >= 0 && chX <= w && chY >= 0 && chY <= h) {
+            mCtx.fillStyle = '#f59e0b';
+            mCtx.beginPath();
+            mCtx.arc(chX, chY, 2.5, 0, Math.PI * 2);
+            mCtx.fill();
+          }
+        }
       }
 
       // Draw Altar

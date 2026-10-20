@@ -98,7 +98,7 @@ export class WeaponSystem {
 
     const slashAngle = Math.atan2(targetY - player.y, targetX - player.x);
     player.facing = Math.cos(slashAngle) >= 0 ? 1 : -1;
-    player.attackAnimTimer = 0.2;
+    player.triggerAttackAnim(0.24);
 
     // Visual Slash Arc & Sound
     sound.playSlash();
@@ -188,7 +188,9 @@ export class WeaponSystem {
     let baseAngle = player.facing > 0 ? 0 : Math.PI;
     if (target) {
       baseAngle = Math.atan2(target.y - player.y, target.x - player.x);
+      player.facing = target.x >= player.x ? 1 : -1;
     }
+    player.triggerAttackAnim(0.28);
 
     // Cantidad de bolas de fuego aumenta con nivel (1 a 4)
     const fireballCount = 1 + Math.floor(level / 2);
@@ -234,6 +236,7 @@ export class WeaponSystem {
     }
 
     if (targets.length > 0) {
+      player.triggerAttackAnim(0.28);
       sound.playLightning();
     }
   }
@@ -242,6 +245,7 @@ export class WeaponSystem {
   fireArco(player, level, enemies, boss, projectiles, sound) {
     const arrowCount = 1 + level; // 2 a 6 flechas perforantes
     const damage = Math.round(player.stats.attack * 0.75 + level * 5);
+    player.triggerAttackAnim(0.24);
 
     for (let i = 0; i < arrowCount; i++) {
       const spread = (i - (arrowCount - 1) / 2) * 0.16;
@@ -257,6 +261,7 @@ export class WeaponSystem {
     const damage = Math.round(player.stats.attack * 1.35 + level * 14);
     const range = 200 + level * 12;
 
+    player.triggerAttackAnim(0.30);
     const nearbyTargets = enemies.filter(e => e.isAlive && Math.hypot(e.x - player.x, e.y - player.y) < range);
     if (boss && boss.isAlive && Math.hypot(boss.x - player.x, boss.y - player.y) < range) {
       nearbyTargets.unshift(boss);
@@ -296,6 +301,7 @@ export class WeaponSystem {
     // Cantidad de proyectiles teledirigidos aumenta con el nivel (4 a 12 misiles)
     const missileCount = 2 + level * 2;
     const damage = Math.round(player.stats.attack * 0.7 + level * 5);
+    player.triggerAttackAnim(0.28);
 
     for (let i = 0; i < missileCount; i++) {
       const angle = (Math.PI * 2 / missileCount) * i + (Math.random() - 0.5) * 0.25;

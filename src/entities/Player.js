@@ -59,10 +59,16 @@ export class Player {
     this.invulnerabilityTimer = 0;
     this.walkAnimTimer = 0;
 
-    // Weapon Swing Visual
+    // Weapon Swing / Attack Animation
     this.swordAngle = 0;
     this.isAttacking = false;
     this.attackAnimTimer = 0;
+    this.attackDuration = 0.3;
+  }
+
+  triggerAttackAnim(duration = 0.3) {
+    this.attackDuration = duration;
+    this.attackAnimTimer = duration;
   }
 
   takeDamage(amount) {
@@ -251,11 +257,19 @@ export class Player {
     const key = `heroes/${this.charData.id || 'dante'}`;
     const moving = this.vx !== 0 || this.vy !== 0;
     let anim = null;
-    if (this.isDowned) anim = 'death';
-    else if (this.attackAnimTimer > 0) anim = 'attack';
-    else if (moving) anim = 'walk';
-    else anim = 'idle';
-    return drawSprite(ctx, key, x, y + 16, { dir, anim, time: this.animTime, tint });
+    let time = this.animTime;
+    if (this.isDowned) {
+      anim = 'death';
+    } else if (this.attackAnimTimer > 0) {
+      anim = 'attack';
+      const duration = this.attackDuration || 0.3;
+      time = Math.max(0, duration - this.attackAnimTimer);
+    } else if (moving) {
+      anim = 'walk';
+    } else {
+      anim = 'idle';
+    }
+    return drawSprite(ctx, key, x, y + 16, { dir, anim, time, tint });
   }
 
   drawHeroSprite(ctx, x, y, facing, isFlashing, tintColor = null) {

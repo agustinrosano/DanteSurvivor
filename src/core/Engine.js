@@ -123,6 +123,7 @@ export class GameEngine {
 
     if (this.input.consumeSkill()) {
       if (player.triggerSkill()) {
+        player.triggerAttackAnim(0.45);
         sound.playBossRoar();
         this.particles.addFloatingText(player.x, player.y - 30, `¡${player.charData.skillName.toUpperCase()}!`, '#f59e0b', 18, true);
         this.camera.shake(8, 0.2);
@@ -169,10 +170,29 @@ export class GameEngine {
     if (!this.isDungeon) {
       this.world.update(player.x, player.y);
 
-      // Check Crypt Entrance Portal collision
-      const dCrypt = Math.hypot(player.x - this.world.cryptEntrance.x, player.y - this.world.cryptEntrance.y);
-      if (dCrypt < this.world.cryptEntrance.radius) {
-        this.enterDungeon();
+      // Check Crypt Entrance Portal collision (Multiple Dungeons)
+      for (const entrance of (this.world.dungeonEntrances || [this.world.cryptEntrance])) {
+        const dCrypt = Math.hypot(player.x - entrance.x, player.y - entrance.y);
+        if (dCrypt < entrance.radius) {
+          this.enterDungeon(entrance);
+          break;
+        }
+      }
+
+      // Check Surface Rare Chests
+      if (this.world.surfaceChests) {
+        for (const chest of this.world.surfaceChests) {
+          if (!chest.opened && Math.hypot(player.x - chest.x, player.y - chest.y) < chest.radius + player.radius) {
+            chest.opened = true;
+            sound.playLevelUp();
+            this.drops.spawnHealthPotion(chest.x, chest.y);
+            this.drops.spawnXpGem(chest.x + 10, chest.y, 60);
+            const soulReward = chest.lootValue || 35;
+            player.souls += soulReward;
+            this.particles.addFloatingText(chest.x, chest.y - 25, `¡COFRE ANCESTRAL! +${soulReward} 🪙`, '#f59e0b', 18, true);
+            this.camera.shake(5, 0.18);
+          }
+        }
       }
 
       // Check Altar Boss Awakening
@@ -302,22 +322,33 @@ export class GameEngine {
         const rand = Math.random();
 
         if (this.currentMapId === 'limbo') {
-          if (this.gameTime > 90 && rand < 0.35) {
-            type = 'knight';
-          } else if (this.gameTime > 30 && rand < 0.45) {
+          if (this.gameTime > 120 && rand < 0.20) {
+            type = 'vampire';
+          } else if (this.gameTime > 75 && rand < 0.40) {
+            type = 'demon';
+          } else if (this.gameTime > 45 && rand < 0.60) {
             type = 'wraith';
           } else if (rand < 0.50) {
-            type = 'skeleton';
+            type = 'knight';
+          } else {
+            type = 'slime';
           }
         } else {
-          if (this.gameTime > 180 && rand < 0.25) {
+          // Bosque de los Condenados
+          if (this.gameTime > 150 && rand < 0.18) {
+            type = 'vampire';
+          } else if (this.gameTime > 100 && rand < 0.32) {
+            type = 'demon';
+          } else if (this.gameTime > 70 && rand < 0.48) {
             type = 'knight';
-          } else if (this.gameTime > 120 && rand < 0.35) {
-            type = 'wraith';
-          } else if (this.gameTime > 60 && rand < 0.45) {
+          } else if (this.gameTime > 40 && rand < 0.62) {
+            type = 'plant';
+          } else if (this.gameTime > 20 && rand < 0.74) {
             type = 'skeleton';
-          } else if (this.gameTime > 30 && rand < 0.50) {
-            type = 'wolf';
+          } else if (rand < 0.45) {
+            type = 'slime';
+          } else {
+            type = rand < 0.75 ? 'zombie' : 'wolf';
           }
         }
 
@@ -345,20 +376,25 @@ export class GameEngine {
     }
   }
 
-  enterDungeon() {
+  enterDungeon(entrance = null) {
+    this.currentEntrance = entrance || (this.world.dungeonEntrances && this.world.dungeonEntrances[0]) || this.world.cryptEntrance;
     this.isDungeon = true;
+    const seed = this.currentEntrance.seed || Math.floor(Math.random() * 10000);
+    this.dungeon = new ProceduralDungeon(seed, this.currentMapId);
     this.localPlayer.x = this.dungeon.spawnPoint.x;
     this.localPlayer.y = this.dungeon.spawnPoint.y;
     this.enemies = [];
     this.camera.shake(6, 0.2);
     sound.playBossRoar();
-    this.particles.addFloatingText(this.localPlayer.x, this.localPlayer.y - 30, '⚡ DESCENDIENDO A LA CRIPTA ⚡', '#a855f7', 18);
+    const title = this.currentEntrance.name ? `⚡ ${this.currentEntrance.name.toUpperCase()} ⚡` : '⚡ DESCENDIENDO A LA CRIPTA ⚡';
+    this.particles.addFloatingText(this.localPlayer.x, this.localPlayer.y - 30, title, '#a855f7', 18, true);
   }
 
   exitDungeon() {
     this.isDungeon = false;
-    this.localPlayer.x = this.world.cryptEntrance.x + 50;
-    this.localPlayer.y = this.world.cryptEntrance.y;
+    const returnPt = this.currentEntrance || this.world.cryptEntrance;
+    this.localPlayer.x = returnPt.x + 50;
+    this.localPlayer.y = returnPt.y;
     this.enemies = [];
     this.particles.addFloatingText(this.localPlayer.x, this.localPlayer.y - 30, '⚡ REGRESO A LA SUPERFICIE ⚡', '#38bdf8', 18);
   }
