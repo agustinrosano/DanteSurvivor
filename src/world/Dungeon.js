@@ -3,8 +3,9 @@
 // ============================================================================
 
 export class ProceduralDungeon {
-  constructor(seed = 42) {
+  constructor(seed = 42, mapId = 'bosque') {
     this.seed = seed;
+    this.mapId = mapId;
     this.width = 40; // in tiles
     this.height = 40;
     this.tileSize = 48; // px
@@ -164,19 +165,19 @@ export class ProceduralDungeon {
           // Crypt stone floor with tiled generated cobblestone texture
           if (this.textureLoaded) {
             ctx.drawImage(this.floorTexture, wx, wy, this.tileSize, this.tileSize);
-            ctx.fillStyle = 'rgba(10, 8, 16, 0.45)'; // Gothic dark tint overlay
+            ctx.fillStyle = this.mapId === 'limbo' ? 'rgba(28, 12, 45, 0.55)' : 'rgba(10, 8, 16, 0.45)';
             ctx.fillRect(wx, wy, this.tileSize, this.tileSize);
           } else {
-            ctx.fillStyle = '#181520';
+            ctx.fillStyle = this.mapId === 'limbo' ? '#1c1228' : '#181520';
             ctx.fillRect(wx, wy, this.tileSize, this.tileSize);
-            ctx.fillStyle = '#221e2d';
+            ctx.fillStyle = this.mapId === 'limbo' ? '#2d1e3d' : '#221e2d';
             ctx.fillRect(wx + 2, wy + 2, this.tileSize - 4, this.tileSize - 4);
           }
         } else {
           // Gothic stone brick wall
-          ctx.fillStyle = '#0a0810';
+          ctx.fillStyle = this.mapId === 'limbo' ? '#120a1c' : '#0a0810';
           ctx.fillRect(wx, wy, this.tileSize, this.tileSize);
-          ctx.fillStyle = '#14121e';
+          ctx.fillStyle = this.mapId === 'limbo' ? '#1e142b' : '#14121e';
           ctx.fillRect(wx + 2, wy + 2, this.tileSize - 4, this.tileSize / 2 - 2);
           ctx.fillRect(wx + 2, wy + this.tileSize / 2 + 1, this.tileSize - 4, this.tileSize / 2 - 2);
         }
@@ -186,12 +187,13 @@ export class ProceduralDungeon {
     // 2. Render Exit Portal
     const portal = this.exitPortal;
     if (camera.isInView(portal.x, portal.y, 80)) {
-      ctx.fillStyle = '#38bdf8';
+      const isLimbo = this.mapId === 'limbo';
+      ctx.fillStyle = isLimbo ? '#c084fc' : '#38bdf8';
       ctx.beginPath();
       ctx.arc(portal.x, portal.y, 30, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = '#0369a1';
+      ctx.fillStyle = isLimbo ? '#581c87' : '#0369a1';
       ctx.beginPath();
       ctx.arc(portal.x, portal.y, 20, 0, Math.PI * 2);
       ctx.fill();
@@ -199,7 +201,7 @@ export class ProceduralDungeon {
       ctx.fillStyle = '#e0f2fe';
       ctx.font = '10px Cinzel, serif';
       ctx.textAlign = 'center';
-      ctx.fillText('⚡ VOLVER A SUPERFICIE ⚡', portal.x, portal.y - 36);
+      ctx.fillText(isLimbo ? '🌌 REGRESAR AL LIMBO 🌌' : '⚡ VOLVER A SUPERFICIE ⚡', portal.x, portal.y - 36);
     }
 
     // 3. Render Treasure Chests

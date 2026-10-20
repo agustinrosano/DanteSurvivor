@@ -17,13 +17,24 @@ export class HUDSystem {
     this.bossBarContainer = document.getElementById('boss-bar-container');
     this.bossHpFill = document.getElementById('boss-hp-fill');
     this.bossPhaseBadge = document.getElementById('boss-phase-badge');
+    this.bossNameDisplay = document.getElementById('boss-name');
+    this.biomeDisplay = document.getElementById('hud-biome-name');
 
     // Minimap
     this.minimapCanvas = document.getElementById('minimap-canvas');
     this.minimapCtx = this.minimapCanvas ? this.minimapCanvas.getContext('2d') : null;
   }
 
-  update(player, gameTime, boss, isDungeon, world, party = []) {
+  update(player, gameTime, boss, isDungeon, world, party = [], mapId = 'bosque') {
+    // Stage Biome Display
+    if (this.biomeDisplay) {
+      if (isDungeon) {
+        this.biomeDisplay.textContent = mapId === 'limbo' ? 'Cripta Espectral' : 'Cripta Maldita';
+      } else {
+        this.biomeDisplay.textContent = mapId === 'limbo' ? 'El Limbo de las Ánimas' : 'Bosque de los Condenados';
+      }
+    }
+
     // 1. Player HP Bar
     const hpPct = Math.max(0, Math.min(100, (player.hp / player.maxHp) * 100));
     if (this.hpBarFill) this.hpBarFill.style.width = `${hpPct}%`;
@@ -49,6 +60,7 @@ export class HUDSystem {
     // 5. Boss Bar
     if (boss && boss.isAlive) {
       if (this.bossBarContainer) this.bossBarContainer.classList.remove('hidden');
+      if (this.bossNameDisplay && boss.name) this.bossNameDisplay.textContent = boss.name.toUpperCase();
       const bPct = Math.max(0, Math.min(100, (boss.hp / boss.maxHp) * 100));
       if (this.bossHpFill) this.bossHpFill.style.width = `${bPct}%`;
       if (this.bossPhaseBadge) this.bossPhaseBadge.textContent = `FASE ${boss.phase}`;

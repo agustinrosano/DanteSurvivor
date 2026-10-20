@@ -41,6 +41,7 @@ export class GameEngine {
     this.enemies = [];
     this.boss = null;
 
+    this.currentMapId = 'bosque';
     this.isDungeon = false;
     this.isPlaying = false;
     this.isPaused = false;
@@ -62,10 +63,11 @@ export class GameEngine {
     this.lighting.resize(this.canvas.width, this.canvas.height);
   }
 
-  startSession(charId = 'dante') {
+  startSession(charId = 'dante', mapId = 'bosque') {
     sound.init();
     sound.playMusic();
 
+    this.currentMapId = mapId;
     this.isDungeon = false;
     this.gameTime = 0;
     this.enemies = [];
@@ -76,9 +78,9 @@ export class GameEngine {
     this.particles.slashes = [];
     this.projectiles.projectiles = [];
 
-    // Re-seed world
-    this.world = new ProceduralWorld(Math.floor(Math.random() * 10000));
-    this.dungeon = new ProceduralDungeon(Math.floor(Math.random() * 10000));
+    // Re-seed world with selected map
+    this.world = new ProceduralWorld(Math.floor(Math.random() * 10000), mapId);
+    this.dungeon = new ProceduralDungeon(Math.floor(Math.random() * 10000), mapId);
 
     // Create Local Player
     this.localPlayer = new Player('local', charId, 0, 0, true);
@@ -212,10 +214,12 @@ export class GameEngine {
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i];
       if (!e.isAlive) {
-        // Drop XP and Souls
-        this.drops.spawnXpGem(e.x, e.y, e.xpValue);
+        // Drop XP and Souls (with bonus in Limbo)
+        const xpAmount = this.currentMapId === 'limbo' ? Math.round(e.xpValue * 1.25) : e.xpValue;
+        const soulsAmount = this.currentMapId === 'limbo' ? Math.round((e.isElite ? 5 : 1) * 1.25) : (e.isElite ? 5 : 1);
+        this.drops.spawnXpGem(e.x, e.y, xpAmount);
         player.kills += 1;
-        player.souls += e.isElite ? 5 : 1;
+        player.souls += soulsAmount;
 
         if (Math.random() < 0.25) {
           sound.playZombie();
@@ -270,7 +274,7 @@ export class GameEngine {
     this.particles.update(dt);
 
     // 12. Update HUD
-    this.hud.update(player, this.gameTime, this.boss, this.isDungeon, this.world, this.players);
+    this.hud.update(player, this.gameTime, this.boss, this.isDungeon, this.world, this.players, this.currentMapId);
   }
 
   updateHordeSpawning(dt, player) {
@@ -279,7 +283,9 @@ export class GameEngine {
     this.spawnTimer -= dt;
     if (this.spawnTimer <= 0) {
       // Scale spawn rate with time survived
-      this.spawnInterval = Math.max(0.2, 1.2 - (this.gameTime / 180));
+      this.spawnInterval = this.currentMapId === 'limbo'
+        ? Math.max(0.18, 1.0 - (this.gameTime / 150))
+        : Math.max(0.2, 1.2 - (this.gameTime / 180));
       this.spawnTimer = this.spawnInterval;
 
       // Determine batch count
@@ -291,18 +297,28 @@ export class GameEngine {
         const sx = player.x + Math.cos(angle) * spawnDist;
         const sy = player.y + Math.sin(angle) * spawnDist;
 
-        // Choose enemy type based on survival time
+        // Choose enemy type based on survival time and stage
         let type = 'zombie';
         const rand = Math.random();
 
-        if (this.gameTime > 180 && rand < 0.25) {
-          type = 'knight';
-        } else if (this.gameTime > 120 && rand < 0.35) {
-          type = 'wraith';
-        } else if (this.gameTime > 60 && rand < 0.45) {
-          type = 'skeleton';
-        } else if (this.gameTime > 30 && rand < 0.50) {
-          type = 'wolf';
+        if (this.currentMapId === 'limbo') {
+          if (this.gameTime > 90 && rand < 0.35) {
+            type = 'knight';
+          } else if (this.gameTime > 30 && rand < 0.45) {
+            type = 'wraith';
+          } else if (rand < 0.50) {
+            type = 'skeleton';
+          }
+        } else {
+          if (this.gameTime > 180 && rand < 0.25) {
+            type = 'knight';
+          } else if (this.gameTime > 120 && rand < 0.35) {
+            type = 'wraith';
+          } else if (this.gameTime > 60 && rand < 0.45) {
+            type = 'skeleton';
+          } else if (this.gameTime > 30 && rand < 0.50) {
+            type = 'wolf';
+          }
         }
 
         const isElite = Math.random() < 0.08;
@@ -312,10 +328,12 @@ export class GameEngine {
   }
 
   spawnBoss(x, y) {
-    this.boss = new Boss(x, y, this.players.length);
+    const isLimbo = this.currentMapId === 'limbo';
+    const bossName = isLimbo ? 'El Arconte de las Ánimas' : 'El Rey de los Condenados';
+    this.boss = new Boss(x, y, this.players.length, bossName);
     sound.playBossRoar();
     this.camera.shake(16, 0.6);
-    this.particles.addFloatingText(x, y - 50, '¡HA SURGIDO EL REY DE LOS CONDENADOS!', '#ef4444', 24, true);
+    this.particles.addFloatingText(x, y - 50, isLimbo ? '¡HA SURGIDO EL ARCONTE DE LAS ÁNIMAS!' : '¡HA SURGIDO EL REY DE LOS CONDENADOS!', isLimbo ? '#c084fc' : '#ef4444', 24, true);
   }
 
   spawnMinionsAround(x, y, count = 6) {
@@ -444,6 +462,6 @@ export class GameEngine {
 
     // 8. Dynamic Lighting & Fog of War Mask (Rendered in screen space)
     const torches = this.isDungeon ? this.dungeon.torches : this.world.torches;
-    this.lighting.render(ctx, this.camera, this.localPlayer, torches, this.isDungeon, this.projectiles.projectiles, this.particles.particles);
+    this.lighting.render(ctx, this.camera, this.localPlayer, torches, this.isDungeon, this.projectiles.projectiles, this.particles.particles, this.currentMapId);
   }
 }

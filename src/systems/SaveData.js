@@ -8,6 +8,7 @@ const DEFAULT_DATA = {
   souls: 0,
   unlockedCharacters: ['dante', 'lyra', 'kael', 'morgana', 'thorin'],
   selectedCharacter: 'dante',
+  selectedMap: 'bosque',
   metaUpgrades: {
     health: 0,
     attack: 0,

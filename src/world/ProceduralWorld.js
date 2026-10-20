@@ -42,8 +42,9 @@ function smoothNoise(x, y, seed) {
 }
 
 export class ProceduralWorld {
-  constructor(seed = 1337) {
+  constructor(seed = 1337, mapId = 'bosque') {
     this.seed = seed;
+    this.mapId = mapId;
     this.tileSize = 48; // px
     this.chunkSize = 16; // 16x16 tiles per chunk
     this.chunkPx = this.tileSize * this.chunkSize; // 768px
@@ -100,9 +101,16 @@ export class ProceduralWorld {
 
     // Determine biome from macro noise
     const macroVal = smoothNoise(cx * 0.15, cy * 0.15, this.seed);
-    let biome = 'bosque'; // default
-    if (macroVal > 0.65) biome = 'tierras_malditas';
-    else if (macroVal < 0.25) biome = 'sombras';
+    const isLimbo = this.mapId === 'limbo';
+    let biome = isLimbo ? 'limbo_eter' : 'bosque';
+
+    if (isLimbo) {
+      if (macroVal > 0.62) biome = 'limbo_abismo';
+      else if (macroVal < 0.32) biome = 'limbo_cenizas';
+    } else {
+      if (macroVal > 0.65) biome = 'tierras_malditas';
+      else if (macroVal < 0.25) biome = 'sombras';
+    }
 
     for (let ty = 0; ty < this.chunkSize; ty++) {
       for (let tx = 0; tx < this.chunkSize; tx++) {
@@ -111,13 +119,22 @@ export class ProceduralWorld {
         const noise = smoothNoise(worldTileX * 0.08, worldTileY * 0.08, this.seed);
 
         let tileType = 'grass';
-        if (biome === 'tierras_malditas') {
-          tileType = noise > 0.4 ? 'dirt' : 'corrupted';
-        } else if (biome === 'sombras') {
-          tileType = noise > 0.4 ? 'obsidian' : 'void';
+        if (isLimbo) {
+          if (biome === 'limbo_abismo') {
+            tileType = noise > 0.4 ? 'spectral_slate' : 'ethereal_void';
+          } else if (biome === 'limbo_cenizas') {
+            tileType = noise > 0.4 ? 'soul_ash' : 'spectral_slate';
+          } else {
+            tileType = noise > 0.5 ? 'spectral_slate' : (noise > 0.25 ? 'astral_path' : 'ethereal_void');
+          }
         } else {
-          // Bosque
-          tileType = noise > 0.5 ? 'deep_grass' : (noise > 0.25 ? 'grass' : 'path');
+          if (biome === 'tierras_malditas') {
+            tileType = noise > 0.4 ? 'dirt' : 'corrupted';
+          } else if (biome === 'sombras') {
+            tileType = noise > 0.4 ? 'obsidian' : 'void';
+          } else {
+            tileType = noise > 0.5 ? 'deep_grass' : (noise > 0.25 ? 'grass' : 'path');
+          }
         }
 
         tiles.push({ x: tx, y: ty, type: tileType });
@@ -133,36 +150,71 @@ export class ProceduralWorld {
 
         if (distSpawn > 120 && distCrypt > 100 && distAltar > 100) {
           const rand = rng();
-          if (rand < 0.055) {
-            // Tree
-            obstacles.push({
-              x: wx,
-              y: wy,
-              radius: 20,
-              type: 'tree',
-              height: 48,
-              variant: Math.floor(rand * 3)
-            });
-          } else if (rand < 0.08) {
-            // Tombstone / Ruin
-            obstacles.push({
-              x: wx,
-              y: wy,
-              radius: 14,
-              type: 'tombstone'
-            });
-          } else if (rand < 0.09) {
-            // Torch Brazier
-            const torch = {
-              x: wx,
-              y: wy,
-              radius: 12,
-              type: 'brazier',
-              lightRadius: 180 + rng() * 20,
-              chunkKey: this.getChunkKey(cx, cy)
-            };
-            obstacles.push(torch);
-            this.torches.push(torch);
+          if (isLimbo) {
+            // Limbo specific obstacles
+            if (rand < 0.055) {
+              // Runic Monolith
+              obstacles.push({
+                x: wx,
+                y: wy,
+                radius: 20,
+                type: 'monolith',
+                variant: Math.floor(rand * 3)
+              });
+            } else if (rand < 0.08) {
+              // Soul Crystal cluster
+              obstacles.push({
+                x: wx,
+                y: wy,
+                radius: 14,
+                type: 'soul_crystal'
+              });
+            } else if (rand < 0.09) {
+              // Ethereal Will-o'-the-wisp lantern
+              const torch = {
+                x: wx,
+                y: wy,
+                radius: 12,
+                type: 'soul_lantern',
+                lightRadius: 190 + rng() * 25,
+                chunkKey: this.getChunkKey(cx, cy)
+              };
+              obstacles.push(torch);
+              this.torches.push(torch);
+            }
+          } else {
+            // Forest specific obstacles
+            if (rand < 0.055) {
+              // Tree
+              obstacles.push({
+                x: wx,
+                y: wy,
+                radius: 20,
+                type: 'tree',
+                height: 48,
+                variant: Math.floor(rand * 3)
+              });
+            } else if (rand < 0.08) {
+              // Tombstone / Ruin
+              obstacles.push({
+                x: wx,
+                y: wy,
+                radius: 14,
+                type: 'tombstone'
+              });
+            } else if (rand < 0.09) {
+              // Torch Brazier
+              const torch = {
+                x: wx,
+                y: wy,
+                radius: 12,
+                type: 'brazier',
+                lightRadius: 180 + rng() * 20,
+                chunkKey: this.getChunkKey(cx, cy)
+              };
+              obstacles.push(torch);
+              this.torches.push(torch);
+            }
           }
         }
       }
@@ -219,7 +271,19 @@ export class ProceduralWorld {
         let baseColor = '#1c281e';
         let detailColor = '#152016';
 
-        if (tile.type === 'deep_grass') {
+        if (tile.type === 'spectral_slate') {
+          baseColor = '#181428';
+          detailColor = '#291e42';
+        } else if (tile.type === 'ethereal_void') {
+          baseColor = '#0c0818';
+          detailColor = '#1c1230';
+        } else if (tile.type === 'soul_ash') {
+          baseColor = '#221330';
+          detailColor = '#381c4e';
+        } else if (tile.type === 'astral_path') {
+          baseColor = '#2d2048';
+          detailColor = '#432e6a';
+        } else if (tile.type === 'deep_grass') {
           baseColor = '#152217';
           detailColor = '#0f1911';
         } else if (tile.type === 'path') {
@@ -243,19 +307,122 @@ export class ProceduralWorld {
         ctx.fillStyle = detailColor;
         ctx.fillRect(tx + 4, ty + 4, 6, 6);
         ctx.fillRect(tx + 24, ty + 20, 8, 4);
+
+        // Occasional faint glowing rune markings in Limbo
+        if (tile.type === 'spectral_slate' && ((tx * 31 + ty * 17) % 7 === 0)) {
+          ctx.fillStyle = 'rgba(168, 85, 247, 0.25)';
+          ctx.fillRect(tx + 16, ty + 16, 4, 12);
+          ctx.fillRect(tx + 12, ty + 20, 12, 4);
+        }
       }
     }
 
     // 2. Render Special Landmarks (Crypt Entrance & Altar)
     this.renderLandmarks(ctx, camera);
 
-    // 3. Render Obstacles (Trees, Tombstones, Braziers)
+    // 3. Render Obstacles
     for (const chunk of this.loadedChunks.values()) {
       for (const obs of chunk.obstacles) {
         if (!camera.isInView(obs.x, obs.y, 60)) continue;
 
-        if (obs.type === 'tree') {
-          // Tree trunk shadow
+        if (obs.type === 'monolith') {
+          // Limbo Runic Monolith (Levitating ancient obsidian obelisk)
+          const levitate = Math.sin(Date.now() * 0.002 + obs.x) * 3;
+
+          // Shadow on ground
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+          ctx.beginPath();
+          ctx.ellipse(obs.x, obs.y + 12, obs.radius * 1.4, obs.radius * 0.6, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Obsidian Pillar Body
+          ctx.fillStyle = '#110c1c';
+          ctx.beginPath();
+          ctx.moveTo(obs.x - 14, obs.y + 8 + levitate);
+          ctx.lineTo(obs.x - 10, obs.y - 40 + levitate);
+          ctx.lineTo(obs.x + 10, obs.y - 40 + levitate);
+          ctx.lineTo(obs.x + 14, obs.y + 8 + levitate);
+          ctx.closePath();
+          ctx.fill();
+
+          // Dark crystal edges
+          ctx.strokeStyle = '#381c5a';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // Glowing Runic Inscriptions (Cyan / Violet)
+          const runePulse = 0.5 + Math.sin(Date.now() * 0.004 + obs.y) * 0.3;
+          ctx.fillStyle = `rgba(168, 85, 247, ${runePulse})`;
+          ctx.fillRect(obs.x - 3, obs.y - 30 + levitate, 6, 18);
+          ctx.fillStyle = `rgba(56, 189, 248, ${runePulse})`;
+          ctx.fillRect(obs.x - 6, obs.y - 20 + levitate, 12, 3);
+          ctx.fillRect(obs.x - 4, obs.y - 12 + levitate, 8, 3);
+
+          // Levitating Crystal Tip
+          ctx.fillStyle = '#a855f7';
+          ctx.beginPath();
+          ctx.arc(obs.x, obs.y - 48 + levitate, 4, 0, Math.PI * 2);
+          ctx.fill();
+
+        } else if (obs.type === 'soul_crystal') {
+          // Limbo Soul Crystal Cluster
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+          ctx.beginPath();
+          ctx.ellipse(obs.x, obs.y + 6, 16, 6, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Sharp crystal cluster
+          ctx.fillStyle = '#581c87';
+          ctx.beginPath();
+          ctx.moveTo(obs.x - 10, obs.y + 4);
+          ctx.lineTo(obs.x - 6, obs.y - 22);
+          ctx.lineTo(obs.x - 2, obs.y + 4);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.fillStyle = '#a855f7';
+          ctx.beginPath();
+          ctx.moveTo(obs.x - 4, obs.y + 4);
+          ctx.lineTo(obs.x + 2, obs.y - 28);
+          ctx.lineTo(obs.x + 8, obs.y + 4);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.fillStyle = '#38bdf8';
+          ctx.beginPath();
+          ctx.moveTo(obs.x + 4, obs.y + 4);
+          ctx.lineTo(obs.x + 10, obs.y - 16);
+          ctx.lineTo(obs.x + 13, obs.y + 4);
+          ctx.closePath();
+          ctx.fill();
+
+        } else if (obs.type === 'soul_lantern') {
+          // Limbo Will-o'-the-wisp soul lantern
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+          ctx.beginPath();
+          ctx.ellipse(obs.x, obs.y + 6, 14, 6, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Ornate spectral pedestal
+          ctx.fillStyle = '#1e162a';
+          ctx.fillRect(obs.x - 6, obs.y - 14, 12, 18);
+          ctx.fillStyle = '#3b2454';
+          ctx.fillRect(obs.x - 9, obs.y - 16, 18, 4);
+
+          // Levitating flame
+          const flameBob = Math.sin(Date.now() * 0.006 + obs.x) * 4;
+          ctx.fillStyle = 'rgba(168, 85, 247, 0.8)';
+          ctx.beginPath();
+          ctx.arc(obs.x, obs.y - 26 + flameBob, 7, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#38bdf8';
+          ctx.beginPath();
+          ctx.arc(obs.x, obs.y - 26 + flameBob, 4, 0, Math.PI * 2);
+          ctx.fill();
+
+        } else if (obs.type === 'tree') {
+          // Forest Tree trunk shadow
           ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
           ctx.beginPath();
           ctx.ellipse(obs.x, obs.y + 10, obs.radius * 1.3, obs.radius * 0.7, 0, 0, Math.PI * 2);
@@ -265,7 +432,7 @@ export class ProceduralWorld {
           ctx.fillStyle = '#2d1f18';
           ctx.fillRect(obs.x - 7, obs.y - 15, 14, 25);
 
-          // Foliage layers (dark gothic fantasy pine/dead oak)
+          // Foliage layers
           ctx.fillStyle = '#0f2015';
           ctx.beginPath();
           ctx.arc(obs.x, obs.y - 28, 26, 0, Math.PI * 2);
@@ -275,32 +442,31 @@ export class ProceduralWorld {
           ctx.beginPath();
           ctx.arc(obs.x, obs.y - 38, 20, 0, Math.PI * 2);
           ctx.fill();
+
         } else if (obs.type === 'tombstone') {
-          // Shadow
+          // Forest Tombstone
           ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
           ctx.beginPath();
           ctx.ellipse(obs.x, obs.y + 6, 16, 6, 0, 0, Math.PI * 2);
           ctx.fill();
 
-          // Stone cross/slab
           ctx.fillStyle = '#475569';
           ctx.fillRect(obs.x - 8, obs.y - 18, 16, 22);
           ctx.fillStyle = '#64748b';
           ctx.fillRect(obs.x - 6, obs.y - 16, 4, 18);
+
         } else if (obs.type === 'brazier') {
-          // Shadow
+          // Forest Brazier
           ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
           ctx.beginPath();
           ctx.ellipse(obs.x, obs.y + 6, 14, 6, 0, 0, Math.PI * 2);
           ctx.fill();
 
           if (this.lanternImg.complete && this.lanternImg.naturalWidth) {
-            // Draw pixel-art lantern centered on base
             const w = 32;
             const h = 42;
             ctx.drawImage(this.lanternImg, Math.round(obs.x - w / 2), Math.round(obs.y - h + 6), w, h);
           } else {
-            // Fallback: Metal tripod & dancing flame
             ctx.fillStyle = '#1e293b';
             ctx.beginPath();
             ctx.arc(obs.x, obs.y, 10, 0, Math.PI * 2);
@@ -322,7 +488,9 @@ export class ProceduralWorld {
   }
 
   renderLandmarks(ctx, camera) {
-    // Crypt Entrance (Diablo 1 Inspired Portal)
+    const isLimbo = this.mapId === 'limbo';
+
+    // Portal (Crypt in Forest, Vórtice Abisal in Limbo)
     const crypt = this.cryptEntrance;
     if (camera.isInView(crypt.x, crypt.y, 80)) {
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -330,34 +498,68 @@ export class ProceduralWorld {
       ctx.ellipse(crypt.x, crypt.y + 10, 48, 24, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Stone archway
-      ctx.fillStyle = '#334155';
-      ctx.beginPath();
-      ctx.arc(crypt.x, crypt.y - 10, 36, Math.PI, 0);
-      ctx.lineTo(crypt.x + 36, crypt.y + 16);
-      ctx.lineTo(crypt.x - 36, crypt.y + 16);
-      ctx.closePath();
-      ctx.fill();
+      if (isLimbo) {
+        // Swirling Cosmic Vortex
+        const spin = Date.now() * 0.003;
+        ctx.fillStyle = '#1e0c38';
+        ctx.beginPath();
+        ctx.arc(crypt.x, crypt.y, 34, 0, Math.PI * 2);
+        ctx.fill();
 
-      // Portal void with purple mist
-      ctx.fillStyle = '#090514';
-      ctx.beginPath();
-      ctx.arc(crypt.x, crypt.y - 6, 26, Math.PI, 0);
-      ctx.lineTo(crypt.x + 26, crypt.y + 16);
-      ctx.lineTo(crypt.x - 26, crypt.y + 16);
-      ctx.closePath();
-      ctx.fill();
+        ctx.strokeStyle = '#a855f7';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(crypt.x, crypt.y, 26, spin, spin + Math.PI * 1.5);
+        ctx.stroke();
 
-      // Glowing runes
-      ctx.fillStyle = '#a855f7';
-      ctx.font = '10px Cinzel, serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('⚡ CRIPTA MALDITA ⚡', crypt.x, crypt.y - 44);
-      ctx.fillStyle = '#c084fc';
-      ctx.fillText('[ ENTRAR ]', crypt.x, crypt.y + 30);
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(crypt.x, crypt.y, 16, -spin, -spin + Math.PI * 1.3);
+        ctx.stroke();
+
+        ctx.fillStyle = '#06020c';
+        ctx.beginPath();
+        ctx.arc(crypt.x, crypt.y, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#c084fc';
+        ctx.font = '10px Cinzel, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🌌 VÓRTICE ABISAL 🌌', crypt.x, crypt.y - 44);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillText('[ CRUZAR UMBRAL ]', crypt.x, crypt.y + 36);
+
+      } else {
+        // Stone archway
+        ctx.fillStyle = '#334155';
+        ctx.beginPath();
+        ctx.arc(crypt.x, crypt.y - 10, 36, Math.PI, 0);
+        ctx.lineTo(crypt.x + 36, crypt.y + 16);
+        ctx.lineTo(crypt.x - 36, crypt.y + 16);
+        ctx.closePath();
+        ctx.fill();
+
+        // Portal void with purple mist
+        ctx.fillStyle = '#090514';
+        ctx.beginPath();
+        ctx.arc(crypt.x, crypt.y - 6, 26, Math.PI, 0);
+        ctx.lineTo(crypt.x + 26, crypt.y + 16);
+        ctx.lineTo(crypt.x - 26, crypt.y + 16);
+        ctx.closePath();
+        ctx.fill();
+
+        // Glowing runes
+        ctx.fillStyle = '#a855f7';
+        ctx.font = '10px Cinzel, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('⚡ CRIPTA MALDITA ⚡', crypt.x, crypt.y - 44);
+        ctx.fillStyle = '#c084fc';
+        ctx.fillText('[ ENTRAR ]', crypt.x, crypt.y + 30);
+      }
     }
 
-    // Regional Altar (Summons Boss)
+    // Regional Altar (Boss Awakening)
     const altar = this.altar;
     if (camera.isInView(altar.x, altar.y, 90)) {
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -366,27 +568,37 @@ export class ProceduralWorld {
       ctx.fill();
 
       // Altar slab
-      ctx.fillStyle = '#1e1b2e';
+      ctx.fillStyle = isLimbo ? '#140c24' : '#1e1b2e';
       ctx.fillRect(altar.x - 35, altar.y - 20, 70, 36);
-      ctx.strokeStyle = '#e6b849';
+      ctx.strokeStyle = isLimbo ? '#a855f7' : '#e6b849';
       ctx.lineWidth = 2;
       ctx.strokeRect(altar.x - 35, altar.y - 20, 70, 36);
 
-      // Skull on altar
-      ctx.fillStyle = '#f8fafc';
+      // Skull or Core on altar
+      ctx.fillStyle = isLimbo ? '#c084fc' : '#f8fafc';
       ctx.beginPath();
       ctx.arc(altar.x, altar.y - 12, 10, 0, Math.PI * 2);
       ctx.fill();
 
       // Altar prompt
-      ctx.fillStyle = altar.activated ? '#ef4444' : '#e6b849';
       ctx.font = '10px Cinzel, serif';
       ctx.textAlign = 'center';
-      ctx.fillText(altar.activated ? '☠️ EL REY HA DESPERTADO ☠️' : '🔥 ALTAR DEL REY CONDENADO 🔥', altar.x, altar.y - 36);
-      if (!altar.activated) {
-        ctx.fillStyle = '#fef08a';
-        ctx.fillText('[ ACÉRCATE PARA DESPERTAR ]', altar.x, altar.y + 32);
+      if (isLimbo) {
+        ctx.fillStyle = altar.activated ? '#ef4444' : '#c084fc';
+        ctx.fillText(altar.activated ? '☠️ EL ARCONTE HA DESPERTADO ☠️' : '🔥 TRONO DEL ARCONTE DE LAS ÁNIMAS 🔥', altar.x, altar.y - 36);
+        if (!altar.activated) {
+          ctx.fillStyle = '#e9d5ff';
+          ctx.fillText('[ ACÉRCATE PARA DESPERTAR ]', altar.x, altar.y + 32);
+        }
+      } else {
+        ctx.fillStyle = altar.activated ? '#ef4444' : '#e6b849';
+        ctx.fillText(altar.activated ? '☠️ EL REY HA DESPERTADO ☠️' : '🔥 ALTAR DEL REY CONDENADO 🔥', altar.x, altar.y - 36);
+        if (!altar.activated) {
+          ctx.fillStyle = '#fef08a';
+          ctx.fillText('[ ACÉRCATE PARA DESPERTAR ]', altar.x, altar.y + 32);
+        }
       }
     }
   }
 }
+

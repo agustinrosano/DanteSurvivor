@@ -17,8 +17,8 @@ window.addEventListener('DOMContentLoaded', () => {
   let engine = null;
 
   const menus = new MenuSystem({
-    onStartSolo: (charId) => {
-      engine.startSession(charId);
+    onStartSolo: (charId, mapId) => {
+      engine.startSession(charId, mapId);
     },
 
     onToggleSound: () => {
@@ -104,7 +104,7 @@ window.addEventListener('DOMContentLoaded', () => {
         code,
         (joinedCode) => {
           btnJoin.textContent = '¡CONECTADO!';
-          engine.startSession(menus.selectedCharId);
+          engine.startSession(menus.selectedCharId, menus.selectedMapId);
         },
         (errorMsg) => {
           alert(errorMsg);
@@ -116,7 +116,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Start Lobby Expedition
     btnStartLobby?.addEventListener('click', () => {
-      engine.startSession(menus.selectedCharId);
+      engine.startSession(menus.selectedCharId, menus.selectedMapId);
     });
   }
 

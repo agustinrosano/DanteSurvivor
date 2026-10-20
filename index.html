@@ -140,15 +140,44 @@
         </div>
       </div>
 
-      <!-- Character Selection Screen -->
+      <!-- Expedition Setup Screen (Hero & Stage Selection) -->
       <div id="character-screen" class="screen-view hidden">
         <div class="character-select-container medieval-frame">
-          <h2 class="frame-title">SELECCIÓN DE HÉROE</h2>
-          <div class="roster-grid" id="roster-container"></div>
-          <div class="hero-details-panel" id="hero-details"></div>
-          <div class="screen-actions">
-            <button id="btn-char-back" class="medieval-btn btn-tertiary">VOLVER</button>
-            <button id="btn-char-confirm" class="medieval-btn btn-primary">SELECCIONAR HÉROE</button>
+          <div class="setup-header">
+            <h2 class="frame-title" id="setup-title">PREPARAR EXPEDICIÓN</h2>
+            <div class="setup-stepper">
+              <button id="step-tab-hero" class="stepper-step active">
+                <span class="step-num">1</span>
+                <span class="step-text">ELEGIR HÉROE</span>
+              </button>
+              <div class="step-arrow">➔</div>
+              <button id="step-tab-map" class="stepper-step">
+                <span class="step-num">2</span>
+                <span class="step-text">ELEGIR ESCENARIO</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 1: Character Roster & Details -->
+          <div id="step-panel-hero" class="setup-panel">
+            <div class="roster-grid" id="roster-container"></div>
+            <div class="hero-details-panel" id="hero-details"></div>
+            <div class="screen-actions">
+              <button id="btn-char-back" class="medieval-btn btn-tertiary">VOLVER AL MENÚ</button>
+              <button id="btn-char-to-map" class="medieval-btn btn-primary">ELEGIR ESCENARIO ➔</button>
+            </div>
+          </div>
+
+          <!-- Step 2: Map / Stage Selection -->
+          <div id="step-panel-map" class="setup-panel hidden">
+            <div class="maps-grid" id="maps-roster-container"></div>
+            <div class="map-summary-bar" id="map-summary-bar"></div>
+            <div class="screen-actions">
+              <button id="btn-map-back-to-hero" class="medieval-btn btn-tertiary">⬅ CAMBIAR HÉROE</button>
+              <button id="btn-start-expedition" class="medieval-btn btn-primary btn-pulse">
+                <span class="btn-icon">⚔️</span> ¡INICIAR EXPEDICIÓN!
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -14,16 +14,21 @@ export class LightingSystem {
     this.lightCanvas.height = height;
   }
 
-  render(ctx, camera, player, torches, isDungeon = false, projectiles = [], particles = []) {
+  render(ctx, camera, player, torches, isDungeon = false, projectiles = [], particles = [], mapId = 'bosque') {
     const w = this.lightCanvas.width;
     const h = this.lightCanvas.height;
     if (w === 0 || h === 0) return;
 
     const lCtx = this.lightCtx;
+    const isLimbo = mapId === 'limbo';
 
     // 1. Fill light canvas with dark gothic ambient fog
     lCtx.clearRect(0, 0, w, h);
-    lCtx.fillStyle = isDungeon ? 'rgba(5, 3, 10, 0.95)' : `rgba(7, 5, 11, ${this.ambientDarkness})`;
+    if (isLimbo) {
+      lCtx.fillStyle = isDungeon ? 'rgba(8, 4, 16, 0.96)' : 'rgba(10, 6, 22, 0.88)';
+    } else {
+      lCtx.fillStyle = isDungeon ? 'rgba(5, 3, 10, 0.95)' : `rgba(7, 5, 11, ${this.ambientDarkness})`;
+    }
     lCtx.fillRect(0, 0, w, h);
 
     // 2. Cut out radial lights using destination-out
@@ -61,19 +66,25 @@ export class LightingSystem {
     // 3. Draw dark lighting mask onto main canvas
     ctx.drawImage(this.lightCanvas, 0, 0);
 
-    // 4. Warm Color Glow Overlay (additive blend for rich embers & torch atmosphere)
+    // 4. Color Glow Overlay (additive blend for rich embers or astral glow)
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
 
-    // Torch amber glows
+    // Torch amber glows (or ethereal cyan/purple in Limbo)
     for (const torch of torches) {
       if (camera.isInView(torch.x, torch.y, 140)) {
         const tScreen = camera.worldToScreen(torch.x, torch.y);
         const warmRadius = 110 * camera.zoom;
         const grad = ctx.createRadialGradient(tScreen.x, tScreen.y, 0, tScreen.x, tScreen.y, warmRadius);
-        grad.addColorStop(0, 'rgba(245, 158, 11, 0.28)');
-        grad.addColorStop(0.5, 'rgba(239, 68, 68, 0.12)');
-        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        if (isLimbo) {
+          grad.addColorStop(0, 'rgba(168, 85, 247, 0.32)');
+          grad.addColorStop(0.5, 'rgba(56, 189, 248, 0.14)');
+          grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        } else {
+          grad.addColorStop(0, 'rgba(245, 158, 11, 0.28)');
+          grad.addColorStop(0.5, 'rgba(239, 68, 68, 0.12)');
+          grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        }
         ctx.fillStyle = grad;
         ctx.beginPath();
         ctx.arc(tScreen.x, tScreen.y, warmRadius, 0, Math.PI * 2);

@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { CHARACTERS } from '../systems/Characters.js';
+import { MAPS } from '../systems/Maps.js';
 import { saveData } from '../systems/SaveData.js';
 
 export class MenuSystem {
@@ -18,10 +19,20 @@ export class MenuSystem {
     this.levelUpModal = document.getElementById('level-up-modal');
     this.endGameModal = document.getElementById('end-game-modal');
 
+    // Stepper elements
+    this.stepTabHero = document.getElementById('step-tab-hero');
+    this.stepTabMap = document.getElementById('step-tab-map');
+    this.stepPanelHero = document.getElementById('step-panel-hero');
+    this.stepPanelMap = document.getElementById('step-panel-map');
+    this.mapsContainer = document.getElementById('maps-roster-container');
+    this.mapSummaryBar = document.getElementById('map-summary-bar');
+
     this.selectedCharId = saveData.data.selectedCharacter || 'dante';
+    this.selectedMapId = saveData.data.selectedMap || 'bosque';
 
     this.initEventListeners();
     this.renderRoster();
+    this.renderMaps();
   }
 
   showScreen(screen) {
@@ -40,10 +51,27 @@ export class MenuSystem {
     if (this.hud) this.hud.classList.remove('hidden');
   }
 
+  setSetupStep(step) {
+    if (step === 'hero') {
+      this.stepTabHero?.classList.add('active');
+      this.stepTabMap?.classList.remove('active');
+      this.stepPanelHero?.classList.remove('hidden');
+      this.stepPanelMap?.classList.add('hidden');
+      this.renderRoster();
+    } else if (step === 'map') {
+      this.stepTabHero?.classList.remove('active');
+      this.stepTabMap?.classList.add('active');
+      this.stepPanelHero?.classList.add('hidden');
+      this.stepPanelMap?.classList.remove('hidden');
+      this.renderMaps();
+    }
+  }
+
   initEventListeners() {
-    // Main Menu Buttons
+    // Main Menu Buttons: JUGAR EN SOLITARIO leads to choosing hero and map
     document.getElementById('btn-play-solo')?.addEventListener('click', () => {
-      this.callbacks.onStartSolo(this.selectedCharId);
+      this.showScreen(this.screenCharacter);
+      this.setSetupStep('hero');
     });
 
     document.getElementById('btn-multiplayer')?.addEventListener('click', () => {
@@ -53,7 +81,7 @@ export class MenuSystem {
 
     document.getElementById('btn-character-select')?.addEventListener('click', () => {
       this.showScreen(this.screenCharacter);
-      this.renderRoster();
+      this.setSetupStep('hero');
     });
 
     document.getElementById('btn-upgrades-meta')?.addEventListener('click', () => {
@@ -70,14 +98,29 @@ export class MenuSystem {
       }
     });
 
-    // Character Screen Back / Confirm
+    // Expedition Stepper Navigation
+    this.stepTabHero?.addEventListener('click', () => this.setSetupStep('hero'));
+    this.stepTabMap?.addEventListener('click', () => this.setSetupStep('map'));
+
+    // Step 1 Actions
     document.getElementById('btn-char-back')?.addEventListener('click', () => {
       this.showScreen(this.screenMenu);
     });
-    document.getElementById('btn-char-confirm')?.addEventListener('click', () => {
+    document.getElementById('btn-char-to-map')?.addEventListener('click', () => {
       saveData.data.selectedCharacter = this.selectedCharId;
       saveData.save();
-      this.showScreen(this.screenMenu);
+      this.setSetupStep('map');
+    });
+
+    // Step 2 Actions
+    document.getElementById('btn-map-back-to-hero')?.addEventListener('click', () => {
+      this.setSetupStep('hero');
+    });
+    document.getElementById('btn-start-expedition')?.addEventListener('click', () => {
+      saveData.data.selectedCharacter = this.selectedCharId;
+      saveData.data.selectedMap = this.selectedMapId;
+      saveData.save();
+      this.callbacks.onStartSolo(this.selectedCharId, this.selectedMapId);
     });
 
     // Lobby Screen Back
@@ -93,7 +136,7 @@ export class MenuSystem {
     // End Game Retry / Menu
     document.getElementById('btn-end-retry')?.addEventListener('click', () => {
       this.endGameModal?.classList.add('hidden');
-      this.callbacks.onStartSolo(this.selectedCharId);
+      this.callbacks.onStartSolo(this.selectedCharId, this.selectedMapId);
     });
     document.getElementById('btn-end-menu')?.addEventListener('click', () => {
       this.endGameModal?.classList.add('hidden');
@@ -125,6 +168,7 @@ export class MenuSystem {
         this.selectedCharId = id;
         this.renderRoster();
         this.renderHeroDetails(CHARACTERS[id]);
+        this.renderMaps();
       });
     });
 
@@ -156,6 +200,61 @@ export class MenuSystem {
     // Also update HUD avatar
     const hudAvatar = document.getElementById('hud-avatar-img');
     if (hudAvatar) hudAvatar.src = char.portrait;
+  }
+
+  renderMaps() {
+    const container = this.mapsContainer || document.getElementById('maps-roster-container');
+    if (!container) return;
+
+    let html = '';
+    for (const map of Object.values(MAPS)) {
+      const isActive = map.id === this.selectedMapId;
+      html += `
+        <div class="map-card ${isActive ? 'active' : ''}" data-map="${map.id}">
+          <div class="map-card-banner">
+            <img src="${map.previewImg}" alt="${map.name}">
+            <div class="map-card-badges">
+              <span class="map-badge-act">${map.badge}</span>
+              <span class="map-badge-diff" style="background: ${map.difficultyColor}CC;">${map.difficulty}</span>
+            </div>
+          </div>
+          <div class="map-card-body">
+            <h3 class="map-card-title">${map.icon} ${map.name}</h3>
+            <div class="map-card-subtitle">${map.subtitle}</div>
+            <p class="map-card-desc">${map.description}</p>
+            <ul class="map-card-features">
+              ${map.features.map(f => `<li>${f}</li>`).join('')}
+            </ul>
+            <div class="map-select-indicator">
+              ${isActive ? '✓ ESCENARIO SELECCIONADO' : 'SELECCIONAR ESCENARIO'}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    container.innerHTML = html;
+
+    // Attach click handlers
+    container.querySelectorAll('.map-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const id = card.dataset.map;
+        this.selectedMapId = id;
+        saveData.data.selectedMap = id;
+        saveData.save();
+        this.renderMaps();
+      });
+    });
+
+    // Update Summary Bar
+    const summary = this.mapSummaryBar || document.getElementById('map-summary-bar');
+    if (summary) {
+      const char = CHARACTERS[this.selectedCharId];
+      const map = MAPS[this.selectedMapId];
+      summary.innerHTML = `
+        <div>🛡️ <strong>Héroe:</strong> ${char ? `${char.name} (${char.className})` : 'Dante'}</div>
+        <div>🗺️ <strong>Escenario:</strong> ${map ? `${map.name} [${map.badge}]` : 'El Bosque'}</div>
+      `;
+    }
   }
 
   renderSanctuary() {

@@ -5,8 +5,8 @@
 import { drawSprite, directionFromVector } from '../core/Sprites.js';
 
 export class Boss {
-  constructor(x, y, playerCount = 1) {
-    this.name = 'El Rey de los Condenados';
+  constructor(x, y, playerCount = 1, name = 'El Rey de los Condenados') {
+    this.name = name;
     this.x = x;
     this.y = y;
     this.vx = 0;
