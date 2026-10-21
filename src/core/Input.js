@@ -12,14 +12,31 @@ export class InputSystem {
     this.pauseRequested = false;
 
     this.isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    document.documentElement.classList.toggle('touch-enabled', this.isTouchDevice);
 
     this.initKeyboard();
     this.initTouch();
+    window.addEventListener('blur', () => this.reset());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.reset();
+    });
+  }
+
+  reset() {
+    this.keys = {};
+    this.mouse.isDown = false;
+    this.joystick = { x: 0, y: 0, active: false };
+    this.dodgeRequested = false;
+    this.skillRequested = false;
+    this.pauseRequested = false;
+    this.releaseJoystick?.();
   }
 
   initKeyboard() {
     window.addEventListener('keydown', (e) => {
+      if (e.target.matches?.('input, textarea, [contenteditable="true"]')) return;
       this.keys[e.code] = true;
+      if (e.repeat) return;
       if (e.code === 'Space') {
         this.dodgeRequested = true;
         e.preventDefault();
@@ -67,8 +84,14 @@ export class InputSystem {
       let startY = 0;
       const maxRadius = 45;
 
+      this.releaseJoystick = () => {
+        touchId = null;
+        joystickThumb.style.transform = 'translate(0px, 0px)';
+      };
+
       const handleTouchStart = (e) => {
         if (touchId !== null) return;
+        if (e.cancelable) e.preventDefault();
         const touch = e.changedTouches[0];
         touchId = touch.identifier;
         const rect = joystickZone.getBoundingClientRect();
@@ -82,6 +105,7 @@ export class InputSystem {
         for (let i = 0; i < e.changedTouches.length; i++) {
           const touch = e.changedTouches[i];
           if (touch.identifier === touchId) {
+            if (e.cancelable) e.preventDefault();
             let dx = touch.clientX - startX;
             let dy = touch.clientY - startY;
             const dist = Math.hypot(dx, dy);

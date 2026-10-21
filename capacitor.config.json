@@ -1,0 +1,10 @@
+{
+  "appId": "com.agustinrosano.dantequest",
+  "appName": "DANTE QUEST",
+  "webDir": "dist-android",
+  "backgroundColor": "#0a080c",
+  "android": {
+    "backgroundColor": "#0a080c",
+    "adjustMarginsForEdgeToEdge": "force"
+  }
+}

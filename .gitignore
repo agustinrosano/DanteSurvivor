@@ -5,3 +5,7 @@
 !.env.example
 node_modules/
 dist/
+dist-android/
+artifacts/
+test-results/
+playwright-report/

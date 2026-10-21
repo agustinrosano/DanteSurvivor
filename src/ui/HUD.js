@@ -19,6 +19,10 @@ export class HUDSystem {
     this.bossPhaseBadge = document.getElementById('boss-phase-badge');
     this.bossNameDisplay = document.getElementById('boss-name');
     this.biomeDisplay = document.getElementById('hud-biome-name');
+    this.lastUpdateTime = -100;
+    this.weaponSignature = '';
+    this.dodgeButton = document.getElementById('btn-touch-dodge');
+    this.skillButton = document.getElementById('btn-touch-skill');
 
     // Minimap
     this.minimapCanvas = document.getElementById('minimap-canvas');
@@ -26,6 +30,11 @@ export class HUDSystem {
   }
 
   update(player, gameTime, boss, isDungeon, world, party = [], mapId = 'bosque') {
+    const now = performance.now();
+    if (now - this.lastUpdateTime < 100) return;
+    this.lastUpdateTime = now;
+    this.updateAction(this.dodgeButton, player.dodgeCooldownTimer);
+    this.updateAction(this.skillButton, player.skillCooldownTimer);
     // Stage Biome Display
     if (this.biomeDisplay) {
       if (isDungeon) {
@@ -77,6 +86,9 @@ export class HUDSystem {
 
   renderWeaponsBar(player) {
     if (!this.weaponsBar) return;
+    const signature = player.weapons.map(w => `${w.id}:${w.level}`).join('|');
+    if (signature === this.weaponSignature) return;
+    this.weaponSignature = signature;
     const iconImages = {
       espadon: '/assets/greatsword-blade-with-steel-glow-icon-da-cmvbmtz6.png',
       cuchillas: '/assets/three-spinning-curved-throwing-daggers-w-cmvbmu71.png',
@@ -169,5 +181,14 @@ export class HUDSystem {
     mCtx.beginPath();
     mCtx.arc(cx, cy, 3.5, 0, Math.PI * 2);
     mCtx.fill();
+  }
+
+  updateAction(button, remaining) {
+    if (!button) return;
+    const coolingDown = remaining > 0;
+    button.classList.toggle('is-cooling-down', coolingDown);
+    button.setAttribute('aria-disabled', String(coolingDown));
+    const label = button.querySelector('small');
+    if (label) label.textContent = coolingDown ? `${Math.ceil(remaining)}s` : 'LISTO';
   }
 }

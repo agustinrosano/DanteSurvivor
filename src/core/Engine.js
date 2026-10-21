@@ -57,13 +57,19 @@ export class GameEngine {
   }
 
   resizeCanvas() {
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
+    // Use CSS pixels rather than devicePixelRatio: high-density phones should
+    // not pay for a full physical-resolution lighting buffer each frame.
+    this.canvas.width = Math.round(window.visualViewport?.width || window.innerWidth);
+    this.canvas.height = Math.round(window.visualViewport?.height || window.innerHeight);
     this.camera.resize(this.canvas.width, this.canvas.height);
     this.lighting.resize(this.canvas.width, this.canvas.height);
+    if (this.isPlaying) this.render();
   }
 
   startSession(charId = 'dante', mapId = 'bosque') {
+    this.input.reset();
+    this.lastTime = performance.now();
+    sound.resume();
     sound.init();
     sound.playMusic();
 
@@ -407,18 +413,27 @@ export class GameEngine {
 
   togglePause() {
     if (!this.isPlaying) return;
+    if (this.menus.levelUpModal && !this.menus.levelUpModal.classList.contains('hidden')) return;
+    if (this.menus.endGameModal && !this.menus.endGameModal.classList.contains('hidden')) return;
+
     this.isPaused = !this.isPaused;
+    this.input.reset();
     if (this.isPaused) {
+      sound.suspend();
       this.menus.showPause(
         () => {
           this.isPaused = false;
           this.lastTime = performance.now();
           this.menus.hidePause();
+          this.input.reset();
+          sound.resume();
         },
         () => {
           this.isPaused = false;
           this.menus.hidePause();
           this.isPlaying = false;
+          this.input.reset();
+          sound.stopMusic();
           this.menus.showScreen(this.menus.screenMenu);
         },
         () => {
@@ -426,6 +441,7 @@ export class GameEngine {
         }
       );
     } else {
+      sound.resume();
       this.lastTime = performance.now();
       this.menus.hidePause();
     }
@@ -437,11 +453,15 @@ export class GameEngine {
     this.particles.addSpark(player.x, player.y, '#38bdf8', 25);
 
     if (player.isLocal) {
+      this.input.reset();
       this.isPaused = true;
       const choices = getRandomUpgrades(3, player);
       this.menus.showLevelUp(choices, (selectedUpgrade) => {
         applyUpgrade(player, selectedUpgrade);
         this.isPaused = false;
+        sound.resume();
+        this.input.reset();
+        this.lastTime = performance.now();
       });
     }
   }

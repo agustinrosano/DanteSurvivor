@@ -11,13 +11,19 @@ class SoundSystem {
     this.musicVolume = 0.4;
     this.sfxVolume = 0.6;
     this.isInitialized = false;
+    this.suspended = false;
+    this.musicRequested = false;
+    this.activeEffects = new Set();
 
     // Preload Genex generated assets
     this.loadGenexAssets();
   }
 
   init() {
-    if (this.isInitialized) return;
+    if (this.isInitialized) {
+      if (!this.suspended && this.ctx?.state === 'suspended') this.ctx.resume().catch(() => {});
+      return;
+    }
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (AudioCtx) {
@@ -57,13 +63,16 @@ class SoundSystem {
   }
 
   playMusic() {
-    if (!this.enabled || !this.musicAudio) return;
+    this.musicRequested = true;
+    if (!this.enabled || this.suspended || !this.musicAudio) return;
+    this.init();
     this.musicAudio.play().catch(e => {
       // Audio autoplay policy; will play on first click
     });
   }
 
   stopMusic() {
+    this.musicRequested = false;
     if (this.musicAudio) {
       this.musicAudio.pause();
       this.musicAudio.currentTime = 0;
@@ -73,105 +82,99 @@ class SoundSystem {
   toggleSound() {
     this.enabled = !this.enabled;
     if (!this.enabled) {
-      this.stopMusic();
+      this.musicAudio?.pause();
+      for (const effect of this.activeEffects) effect.pause();
+      this.ctx?.suspend().catch(() => {});
     } else {
-      this.playMusic();
+      if (!this.suspended) {
+        this.init();
+        if (this.musicRequested) this.playMusic();
+      }
     }
     return this.enabled;
+  }
+
+  suspend() {
+    this.suspended = true;
+    this.musicAudio?.pause();
+    for (const effect of this.activeEffects) effect.pause();
+    this.activeEffects.clear();
+    this.ctx?.suspend().catch(() => {});
+  }
+
+  resume() {
+    this.suspended = false;
+    if (!this.enabled || this.suspended) return;
+    this.init();
+    if (this.musicRequested) this.playMusic();
+  }
+
+  playEffect(audio, fallback = () => {}, volume = this.sfxVolume) {
+    if (!this.enabled || this.suspended) return;
+    if (!audio) return fallback();
+    if (this.activeEffects.size >= 12) return;
+    const effect = audio.cloneNode();
+    effect.volume = volume;
+    this.activeEffects.add(effect);
+    effect.addEventListener('ended', () => this.activeEffects.delete(effect), { once: true });
+    effect.play().catch(() => {
+      this.activeEffects.delete(effect);
+      if (this.enabled && !this.suspended) fallback();
+    });
   }
 
   // --- Sound Effects ---
 
   playSlash() {
-    if (!this.enabled) return;
-    if (this.sfxSlashAudio) {
-      try {
-        const sound = this.sfxSlashAudio.cloneNode();
-        sound.volume = this.sfxVolume;
-        sound.play().catch(() => this.synthSlash());
-      } catch (e) {
-        this.synthSlash();
-      }
-    } else {
-      this.synthSlash();
-    }
+    this.playEffect(this.sfxSlashAudio, () => this.synthSlash());
   }
 
   playExplosion() {
-    if (!this.enabled) return;
-    if (this.sfxFireballAudio) {
-      try {
-        const sound = this.sfxFireballAudio.cloneNode();
-        sound.volume = this.sfxVolume;
-        sound.play().catch(() => this.synthExplosion());
-      } catch (e) {
-        this.synthExplosion();
-      }
-    } else {
-      this.synthExplosion();
-    }
+    this.playEffect(this.sfxFireballAudio, () => this.synthExplosion());
   }
 
   playZombie() {
-    if (!this.enabled) return;
-    if (this.sfxZombieAudio) {
-      try {
-        const sound = this.sfxZombieAudio.cloneNode();
-        sound.volume = this.sfxVolume * 0.7;
-        sound.play().catch(() => {});
-      } catch (e) {}
-    }
+    this.playEffect(this.sfxZombieAudio, () => {}, this.sfxVolume * 0.7);
   }
 
   playLightning() {
-    if (!this.enabled) return;
-    if (this.sfxLightningAudio) {
-      try {
-        const sound = this.sfxLightningAudio.cloneNode();
-        sound.volume = this.sfxVolume;
-        sound.play().catch(() => this.synthCrit());
-      } catch (e) {
-        this.synthCrit();
-      }
-    } else {
-      this.synthCrit();
-    }
+    this.playEffect(this.sfxLightningAudio, () => this.synthCrit());
   }
 
   playHit() {
-    if (!this.enabled) return;
+    if (!this.enabled || this.suspended) return;
     this.synthHit();
   }
 
   playCrit() {
-    if (!this.enabled) return;
+    if (!this.enabled || this.suspended) return;
     this.synthCrit();
   }
 
   playLevelUp() {
-    if (!this.enabled) return;
+    if (!this.enabled || this.suspended) return;
     this.synthLevelUp();
   }
 
   playGem() {
-    if (!this.enabled) return;
+    if (!this.enabled || this.suspended) return;
     this.synthGem();
   }
 
   playDodge() {
-    if (!this.enabled) return;
+    if (!this.enabled || this.suspended) return;
     this.synthDodge();
   }
 
   playBossRoar() {
-    if (!this.enabled) return;
+    if (!this.enabled || this.suspended) return;
     this.synthBossRoar();
   }
 
   // --- Web Audio API Synth Generators (Instant zero-latency feedback) ---
 
   synthSlash() {
-    if (!this.ctx) return;
+    if (!this.ctx || !this.enabled || this.suspended) return;
     try {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
@@ -188,7 +191,7 @@ class SoundSystem {
   }
 
   synthHit() {
-    if (!this.ctx) return;
+    if (!this.ctx || !this.enabled || this.suspended) return;
     try {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
@@ -205,7 +208,7 @@ class SoundSystem {
   }
 
   synthCrit() {
-    if (!this.ctx) return;
+    if (!this.ctx || !this.enabled || this.suspended) return;
     try {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
@@ -222,7 +225,7 @@ class SoundSystem {
   }
 
   synthGem() {
-    if (!this.ctx) return;
+    if (!this.ctx || !this.enabled || this.suspended) return;
     try {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
@@ -239,7 +242,7 @@ class SoundSystem {
   }
 
   synthLevelUp() {
-    if (!this.ctx) return;
+    if (!this.ctx || !this.enabled || this.suspended) return;
     try {
       const notes = [261.63, 329.63, 392.00, 523.25, 659.25]; // C, E, G, C, E
       notes.forEach((freq, idx) => {
@@ -259,7 +262,7 @@ class SoundSystem {
   }
 
   synthDodge() {
-    if (!this.ctx) return;
+    if (!this.ctx || !this.enabled || this.suspended) return;
     try {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
@@ -276,7 +279,7 @@ class SoundSystem {
   }
 
   synthBossRoar() {
-    if (!this.ctx) return;
+    if (!this.ctx || !this.enabled || this.suspended) return;
     try {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
@@ -294,7 +297,7 @@ class SoundSystem {
   }
 
   synthExplosion() {
-    if (!this.ctx) return;
+    if (!this.ctx || !this.enabled || this.suspended) return;
     try {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
