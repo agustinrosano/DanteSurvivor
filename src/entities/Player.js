@@ -22,6 +22,7 @@ export class Player {
 
     // Base & Modified Stats
     this.stats = { ...this.charData.stats };
+    this.environmentSpeedMultiplier = 1;
     this.hp = this.stats.hp;
     this.maxHp = this.stats.hp;
 
@@ -164,7 +165,7 @@ export class Player {
       }
     } else {
       // Normal movement
-      let speed = this.stats.speed;
+      let speed = this.stats.speed * this.environmentSpeedMultiplier;
       if (this.skillActiveDuration > 0 && this.charData.id === 'dante') {
         speed *= 1.35; // Furia del Guerrero speed buff
       }

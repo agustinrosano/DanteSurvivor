@@ -2,6 +2,8 @@
 // DANTE QUEST — HUD & In-Game Interface (Bars, Minimap, Boss Meter)
 // ============================================================================
 
+import { MAPS } from '../systems/Maps.js';
+
 export class HUDSystem {
   constructor() {
     this.hpBarFill = document.getElementById('hp-bar-fill');
@@ -19,6 +21,8 @@ export class HUDSystem {
     this.bossPhaseBadge = document.getElementById('boss-phase-badge');
     this.bossNameDisplay = document.getElementById('boss-name');
     this.biomeDisplay = document.getElementById('hud-biome-name');
+    this.eventDisplay = document.getElementById('map-event-status');
+    this.minimapLabel = document.getElementById('minimap-label');
     this.lastUpdateTime = -100;
     this.weaponSignature = '';
     this.dodgeButton = document.getElementById('btn-touch-dodge');
@@ -29,7 +33,7 @@ export class HUDSystem {
     this.minimapCtx = this.minimapCanvas ? this.minimapCanvas.getContext('2d') : null;
   }
 
-  update(player, gameTime, boss, isDungeon, world, party = [], mapId = 'bosque') {
+  update(player, gameTime, boss, isDungeon, world, party = [], mapId = 'bosque', eventStatus = '') {
     const now = performance.now();
     if (now - this.lastUpdateTime < 100) return;
     this.lastUpdateTime = now;
@@ -38,10 +42,14 @@ export class HUDSystem {
     // Stage Biome Display
     if (this.biomeDisplay) {
       if (isDungeon) {
-        this.biomeDisplay.textContent = mapId === 'limbo' ? 'Cripta Espectral' : 'Cripta Maldita';
+        this.biomeDisplay.textContent = MAPS[mapId]?.dungeonName || (mapId === 'limbo' ? 'Cripta Espectral' : 'Cripta Maldita');
       } else {
-        this.biomeDisplay.textContent = mapId === 'limbo' ? 'El Limbo de las Ánimas' : 'Bosque de los Condenados';
+        this.biomeDisplay.textContent = MAPS[mapId]?.hudName || MAPS.bosque.hudName;
       }
+    }
+    if (this.eventDisplay) {
+      this.eventDisplay.textContent = eventStatus;
+      this.eventDisplay.classList.toggle('hidden', !eventStatus);
     }
 
     // 1. Player HP Bar
@@ -81,7 +89,7 @@ export class HUDSystem {
     this.renderWeaponsBar(player);
 
     // 7. Minimap
-    this.renderMinimap(player, boss, isDungeon, world);
+    this.renderMinimap(player, boss, isDungeon, world, gameTime);
   }
 
   renderWeaponsBar(player) {
@@ -110,7 +118,7 @@ export class HUDSystem {
     this.weaponsBar.innerHTML = html;
   }
 
-  renderMinimap(player, boss, isDungeon, world) {
+  renderMinimap(player, boss, isDungeon, world, gameTime = 0) {
     if (!this.minimapCtx) return;
     const mCtx = this.minimapCtx;
     const w = this.minimapCanvas.width;
@@ -123,6 +131,9 @@ export class HUDSystem {
     const scale = 0.055; // World to minimap scale
     const cx = w / 2;
     const cy = h / 2;
+    const guideAltar = !isDungeon && world && gameTime >= 120 && !world.altar.activated && !boss;
+    if (this.minimapLabel) this.minimapLabel.textContent = isDungeon ? 'Cripta' : boss?.isAlive ? 'Boss activo' : guideAltar ? '➤ Altar' : 'Superficie';
+    this.minimapCanvas.setAttribute('aria-label', guideAltar ? 'Flecha hacia el altar' : isDungeon ? 'Minimapa de la cripta' : 'Minimapa de superficie');
 
     if (!isDungeon && world) {
       // Draw All Crypt Entrances
@@ -161,6 +172,17 @@ export class HUDSystem {
         mCtx.beginPath();
         mCtx.arc(altarX, altarY, 4, 0, Math.PI * 2);
         mCtx.fill();
+      }
+      if (guideAltar) {
+        const dx = (world.altar.x - player.x) * scale;
+        const dy = (world.altar.y - player.y) * scale;
+        const ratio = Math.min(1, (cx - 10) / Math.max(1, Math.abs(dx)), (cy - 10) / Math.max(1, Math.abs(dy)));
+        mCtx.save();
+        mCtx.translate(cx + dx * ratio, cy + dy * ratio);
+        mCtx.rotate(Math.atan2(dy, dx));
+        mCtx.fillStyle = '#fde68a'; mCtx.strokeStyle = '#17110c'; mCtx.lineWidth = 2;
+        mCtx.beginPath(); mCtx.moveTo(7, 0); mCtx.lineTo(-5, -5); mCtx.lineTo(-2, 0); mCtx.lineTo(-5, 5); mCtx.closePath();
+        mCtx.fill(); mCtx.stroke(); mCtx.restore();
       }
     }
 

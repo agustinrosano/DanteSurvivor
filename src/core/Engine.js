@@ -11,12 +11,16 @@ import { LightingSystem } from '../world/Lighting.js';
 import { Player } from '../entities/Player.js';
 import { Enemy } from '../entities/Enemy.js';
 import { Boss } from '../entities/Boss.js';
+import { CircleBoss } from '../entities/CircleBoss.js';
+import { MapEvents } from '../systems/MapEvents.js';
+import { MAPS } from '../systems/Maps.js';
 import { DropSystem } from '../entities/Drop.js';
 import { ParticleSystem } from '../entities/Particle.js';
 import { ProjectileSystem } from '../entities/Projectile.js';
 import { WeaponSystem } from '../systems/Weapons.js';
 import { getRandomUpgrades, applyUpgrade } from '../systems/Upgrades.js';
 import { saveData } from '../systems/SaveData.js';
+import { enemyHealthMultiplier, bossHealthMultiplier, stageReward } from '../systems/StageRules.js';
 
 export class GameEngine {
   constructor(canvas, hud, menus) {
@@ -32,6 +36,7 @@ export class GameEngine {
     this.particles = new ParticleSystem();
     this.projectiles = new ProjectileSystem();
     this.weapons = new WeaponSystem();
+    this.events = new MapEvents();
 
     this.world = new ProceduralWorld(Math.floor(Math.random() * 10000));
     this.dungeon = new ProceduralDungeon(Math.floor(Math.random() * 10000));
@@ -73,12 +78,15 @@ export class GameEngine {
     sound.init();
     sound.playMusic();
 
+    mapId = MAPS[mapId] ? mapId : 'bosque';
     this.currentMapId = mapId;
+    this.events = new MapEvents(mapId);
     this.isDungeon = false;
     this.gameTime = 0;
     this.enemies = [];
     this.boss = null;
     this.drops.drops = [];
+    this.spawnTimer = 0;
     this.particles.particles = [];
     this.particles.floatingTexts = [];
     this.particles.slashes = [];
@@ -122,7 +130,7 @@ export class GameEngine {
 
     this.gameTime += dt;
     const player = this.localPlayer;
-    const activeWorld = this.isDungeon ? this.dungeon : this.world;
+    let activeWorld = this.isDungeon ? this.dungeon : this.world;
 
     // 1. Process Local Player Input
     const moveVector = this.input.getMovementVector();
@@ -143,9 +151,14 @@ export class GameEngine {
     }
 
     // 2. Update Players
+    this.events.update(dt, {
+      time: this.gameTime, players: this.players, world: activeWorld,
+      bossActive: Boolean(this.boss), isDungeon: this.isDungeon
+    });
     for (const p of this.players) {
       p.update(dt, p === player ? moveVector : { x: 0, y: 0 }, activeWorld);
     }
+    if (!this.isDungeon) this.events.applyForces(this.players, activeWorld, dt);
 
     // Co-op Revival Logic: Living player standing in fallen teammate's ring
     if (this.players.length > 1) {
@@ -185,7 +198,7 @@ export class GameEngine {
       // Check Crypt Entrance Portal collision (Multiple Dungeons)
       for (const entrance of (this.world.dungeonEntrances || [this.world.cryptEntrance])) {
         const dCrypt = Math.hypot(player.x - entrance.x, player.y - entrance.y);
-        if (dCrypt < entrance.radius) {
+        if (dCrypt < entrance.radius && !this.boss) {
           this.enterDungeon(entrance);
           break;
         }
@@ -234,6 +247,7 @@ export class GameEngine {
     }
 
     // 5. Horde Spawning Loop
+    activeWorld = this.isDungeon ? this.dungeon : this.world;
     this.updateHordeSpawning(dt, player);
 
     // 6. Update Weapons & Auto-Attacks
@@ -246,9 +260,12 @@ export class GameEngine {
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i];
       if (!e.isAlive) {
+        if (e.type === 'mireling' && !this.isDungeon && !this.boss) {
+          this.events.addZone('puddle', e.x, e.y, { radius: 38, duration: 20, source: 'creature' });
+        }
         // Drop XP and Souls (with bonus in Limbo)
-        const xpAmount = this.currentMapId === 'limbo' ? Math.round(e.xpValue * 1.25) : e.xpValue;
-        const soulsAmount = this.currentMapId === 'limbo' ? Math.round((e.isElite ? 5 : 1) * 1.25) : (e.isElite ? 5 : 1);
+        const xpAmount = stageReward(this.currentMapId, e.xpValue);
+        const soulsAmount = stageReward(this.currentMapId, e.isElite ? 5 : 1);
         this.drops.spawnXpGem(e.x, e.y, xpAmount);
         player.kills += 1;
         player.souls += soulsAmount;
@@ -265,13 +282,14 @@ export class GameEngine {
         this.enemies.splice(i, 1);
         continue;
       }
-      e.update(dt, this.players, activeWorld, this.enemies);
+      e.update(dt, this.players, activeWorld, this.enemies, this.projectiles);
     }
 
     // 9. Update Boss
     if (this.boss) {
       if (!this.boss.isAlive) {
         this.handleBossVictory();
+        return;
       } else {
         this.boss.update(
           dt,
@@ -280,7 +298,8 @@ export class GameEngine {
           sound,
           this.camera,
           (bx, by, count) => this.spawnMinionsAround(bx, by, count),
-          (px, py, vx, vy, spd, dmg, type) => this.projectiles.spawn(px, py, vx, vy, spd, dmg, type, 1, true)
+          (px, py, vx, vy, spd, dmg, type) => this.projectiles.spawn(px, py, vx, vy, spd, dmg, type, 1, true),
+          { events: this.events, world: activeWorld }
         );
       }
     }
@@ -306,7 +325,7 @@ export class GameEngine {
     this.particles.update(dt);
 
     // 12. Update HUD
-    this.hud.update(player, this.gameTime, this.boss, this.isDungeon, this.world, this.players, this.currentMapId);
+    this.hud.update(player, this.gameTime, this.boss, this.isDungeon, this.world, this.players, this.currentMapId, this.isDungeon ? '' : this.events.status);
   }
 
   updateHordeSpawning(dt, player) {
@@ -315,7 +334,7 @@ export class GameEngine {
     this.spawnTimer -= dt;
     if (this.spawnTimer <= 0) {
       // Scale spawn rate with time survived
-      this.spawnInterval = this.currentMapId === 'limbo'
+      this.spawnInterval = this.currentMapId !== 'bosque'
         ? Math.max(0.18, 1.0 - (this.gameTime / 150))
         : Math.max(0.2, 1.2 - (this.gameTime / 180));
       this.spawnTimer = this.spawnInterval;
@@ -323,7 +342,7 @@ export class GameEngine {
       // Determine batch count
       const batch = 2 + Math.floor(this.gameTime / 60);
 
-      for (let i = 0; i < batch; i++) {
+      for (let i = 0; i < batch && this.enemies.length < this.maxEnemies; i++) {
         const spawnDist = 420 + Math.random() * 80;
         const angle = Math.random() * Math.PI * 2;
         const sx = player.x + Math.cos(angle) * spawnDist;
@@ -333,7 +352,11 @@ export class GameEngine {
         let type = 'zombie';
         const rand = Math.random();
 
-        if (this.currentMapId === 'limbo') {
+        if (this.currentMapId === 'lujuria') {
+          type = rand < 0.42 ? 'tempest_soul' : rand < 0.7 ? 'siren' : this.gameTime > 90 && rand < 0.85 ? 'knight' : 'wraith';
+        } else if (this.currentMapId === 'gula') {
+          type = rand < 0.42 ? 'glutton' : rand < 0.78 ? 'mireling' : this.gameTime > 90 ? 'knight' : 'zombie';
+        } else if (this.currentMapId === 'limbo') {
           if (this.gameTime > 120 && rand < 0.20) {
             type = 'vampire';
           } else if (this.gameTime > 75 && rand < 0.40) {
@@ -365,30 +388,47 @@ export class GameEngine {
         }
 
         const isElite = Math.random() < 0.08;
-        this.enemies.push(new Enemy(type, sx, sy, isElite));
+        this.spawnEnemy(type, sx, sy, isElite);
       }
     }
   }
 
   spawnBoss(x, y) {
     const isLimbo = this.currentMapId === 'limbo';
-    const bossName = isLimbo ? 'El Arconte de las Ánimas' : 'El Rey de los Condenados';
-    this.boss = new Boss(x, y, this.players.length, bossName);
+    const definition = MAPS[this.currentMapId].boss;
+    const bossName = definition?.name || (isLimbo ? 'El Arconte de las Ánimas' : 'El Rey de los Condenados');
+    this.boss = definition ? new CircleBoss(x, y, definition, this.players.length) : new Boss(x, y, this.players.length, bossName);
+    this.events.clear();
+    this.boss.maxHp = Math.ceil(this.boss.maxHp * bossHealthMultiplier(this.currentMapId, this.gameTime, this.encounterLevel()));
+    this.boss.hp = this.boss.maxHp;
     sound.playBossRoar();
     this.camera.shake(16, 0.6);
-    this.particles.addFloatingText(x, y - 50, isLimbo ? '¡HA SURGIDO EL ARCONTE DE LAS ÁNIMAS!' : '¡HA SURGIDO EL REY DE LOS CONDENADOS!', isLimbo ? '#c084fc' : '#ef4444', 24, true);
+    const announcement = definition ? (definition.kind === 'tempest' ? '¡LA TEMPESTAD DESPIERTA!' : '¡CERBERO DESPIERTA!') : `¡HA SURGIDO ${bossName.toUpperCase()}!`;
+    this.particles.addFloatingText(x, y - 50, announcement, MAPS[this.currentMapId].terrain?.accent || '#c084fc', 20, true);
+  }
+
+  encounterLevel() {
+    return Math.max(1, ...this.players.filter(p => p.isAlive && !p.isDowned).map(p => p.level));
+  }
+
+  spawnEnemy(type, x, y, isElite = false) {
+    if (this.enemies.length >= this.maxEnemies) return;
+    const multiplier = enemyHealthMultiplier(this.currentMapId, this.gameTime, this.encounterLevel());
+    this.enemies.push(new Enemy(type, x, y, isElite, multiplier));
   }
 
   spawnMinionsAround(x, y, count = 6) {
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < count && this.enemies.length < this.maxEnemies; i++) {
       const a = (Math.PI * 2 / count) * i;
       const ex = x + Math.cos(a) * 90;
       const ey = y + Math.sin(a) * 90;
-      this.enemies.push(new Enemy('zombie', ex, ey, false));
+      this.spawnEnemy('zombie', ex, ey);
     }
   }
 
   enterDungeon(entrance = null) {
+    this.events.clear();
+    this.projectiles.projectiles = [];
     this.currentEntrance = entrance || (this.world.dungeonEntrances && this.world.dungeonEntrances[0]) || this.world.cryptEntrance;
     this.isDungeon = true;
     const seed = this.currentEntrance.seed || Math.floor(Math.random() * 10000);
@@ -403,6 +443,8 @@ export class GameEngine {
   }
 
   exitDungeon() {
+    this.events.clear();
+    this.projectiles.projectiles = [];
     this.isDungeon = false;
     const returnPt = this.currentEntrance || this.world.cryptEntrance;
     this.localPlayer.x = returnPt.x + 50;
@@ -471,37 +513,23 @@ export class GameEngine {
     sound.playLevelUp();
     this.camera.shake(20, 0.8);
 
-    // Massive loot explosion
     const p = this.localPlayer;
-    for (let i = 0; i < 30; i++) {
-      this.drops.spawnXpGem(p.x, p.y, 25);
-    }
-    p.souls += 100;
-
-    saveData.addSouls(p.souls);
-    saveData.recordRun(p.kills, p.level, Math.floor(this.gameTime), true);
-
-    const mins = Math.floor(this.gameTime / 60);
-    const secs = Math.floor(this.gameTime % 60);
-    const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-
-    setTimeout(() => {
-      this.isPlaying = false;
-      this.menus.showEndGame(true, timeStr, p.kills, p.level, p.souls);
-    }, 1500);
+    p.souls += stageReward(this.currentMapId, 100);
+    this.events.clear();
+    this.handleGameOver(true);
   }
 
   handleGameOver(isVictory) {
     this.isPlaying = false;
     const p = this.localPlayer;
     saveData.addSouls(p.souls);
-    saveData.recordRun(p.kills, p.level, Math.floor(this.gameTime), false);
+    saveData.recordRun(p.kills, p.level, Math.floor(this.gameTime), isVictory);
 
     const mins = Math.floor(this.gameTime / 60);
     const secs = Math.floor(this.gameTime % 60);
     const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
-    this.menus.showEndGame(false, timeStr, p.kills, p.level, p.souls);
+    this.menus.showEndGame(isVictory, timeStr, p.kills, p.level, p.souls);
   }
 
   render() {
@@ -521,6 +549,7 @@ export class GameEngine {
     }
 
     // 2. Drops (XP Gems & Potions)
+    if (!this.isDungeon) this.events.render(ctx, this.camera);
     this.drops.render(ctx, this.camera);
 
     // 3. Enemies
@@ -551,5 +580,6 @@ export class GameEngine {
     // 8. Dynamic Lighting & Fog of War Mask (Rendered in screen space)
     const torches = this.isDungeon ? this.dungeon.torches : this.world.torches;
     this.lighting.render(ctx, this.camera, this.localPlayer, torches, this.isDungeon, this.projectiles.projectiles, this.particles.particles, this.currentMapId);
+    if (!this.isDungeon) this.events.renderWeather(ctx, this.canvas.width, this.canvas.height);
   }
 }

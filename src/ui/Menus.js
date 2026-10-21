@@ -225,6 +225,7 @@ export class MenuSystem {
             <div class="map-card-subtitle">${map.subtitle}</div>
             <p class="map-card-desc">${map.description}</p>
             <ul class="map-card-features">
+              <li>Vida enemiga base ×${map.enemyMultiplier} · aumenta con minutos y nivel</li>
               ${map.features.map(f => `<li>${f}</li>`).join('')}
             </ul>
             <div class="map-select-indicator">

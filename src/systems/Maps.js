@@ -67,5 +67,53 @@ export const MAPS = {
       portalAction: '[ CRUZAR UMBRAL ]',
       dungeonReturnTitle: '🌌 REGRESAR AL LIMBO 🌌'
     }
+  },
+
+  lujuria: {
+    id: 'lujuria',
+    name: 'Segundo Círculo: Lujuria',
+    shortName: 'Lujuria',
+    subtitle: 'Círculo II • Las almas de la tempestad',
+    difficulty: 'Tormento', difficultyColor: '#be5677', badge: 'ACTO III', icon: '🌪️',
+    previewImg: '/assets/circles/lujuria-second-circle-of-dante-haunted-m-cmvhh8e7.png',
+    description: 'Ruinas de mármol rosado bajo una tempestad perpetua. Las almas dominadas por el deseo vagan entre ráfagas y pétalos desgarrados.',
+    features: ['🌪️ Ráfagas señalizadas: buscá un camino seguro', '👻 Almas veloces y sirenas que atacan a distancia', '🪙 +50% Almas y experiencia', '⚔️ Altar del Señor de la Tempestad'],
+    enemyMultiplier: 1.5, soulsMultiplier: 1.5, hudName: 'Segundo Círculo: Lujuria',
+    dungeonName: 'Cripta de los Suspiros',
+    dungeonNames: ['Cripta de los Suspiros', 'Galería del Deseo', 'Santuario de los Ecos', 'Sepulcro de las Rosas'],
+    boss: { kind: 'tempest', name: 'Señor de la Tempestad', sprite: '/assets/circles/single-lord-of-the-tempest-boss-sprite-f-cmvhh8b3.png' },
+    terrain: {
+      floors: ['#402832', '#50313d', '#62404b'], details: ['#523341', '#69414e', '#7b515b'],
+      wall: '#281b24', brick: '#49303b', accent: '#f0a2b6', glow: 'rgba(225, 116, 150, 0.30)',
+      fog: 'rgba(30, 15, 24, 0.68)', dungeonFog: 'rgba(25, 12, 21, 0.87)',
+      floorTint: 'rgba(86, 34, 55, 0.40)', prop: '#805664'
+    },
+    atmosphere: {
+      altarTitle: '🌪️ ALTAR DE LA TEMPESTAD 🌪️', altarPrompt: '[ ACÉRCATE PARA DESPERTAR ]',
+      altarBossActive: '☠ EL SEÑOR DE LA TEMPESTAD HA DESPERTADO ☠', dungeonReturnTitle: 'VOLVER A LUJURIA'
+    }
+  },
+
+  gula: {
+    id: 'gula', name: 'Tercer Círculo: Gula', shortName: 'Gula',
+    subtitle: 'Círculo III • Hambre bajo la lluvia helada',
+    difficulty: 'Voracidad', difficultyColor: '#748e70', badge: 'ACTO IV', icon: '🌧️',
+    previewImg: '/assets/circles/gula-third-circle-of-dante-muddy-medieva-cmvhh8h6.png',
+    description: 'Un lodazal de restos y sepulcros bajo una lluvia sucia y helada. Los glotones acechan entre charcos mientras Cerbero custodia el altar.',
+    features: ['🌧️ Lluvia helada y charcos que ralentizan', '🦴 Glotones resistentes y bestias del lodazal', '🪙 +80% Almas y experiencia', '🐺 Cerbero: tres cabezas, tres fases'],
+    enemyMultiplier: 1.8, soulsMultiplier: 1.8, hudName: 'Tercer Círculo: Gula',
+    dungeonName: 'Cripta del Hambre',
+    dungeonNames: ['Cripta del Hambre', 'Fosa de los Glotones', 'Osario Helado', 'Sepulcro de la Voracidad'],
+    boss: { kind: 'cerberus', name: 'Cerbero, Guardián de la Gula', sprite: '/assets/circles/single-cerberus-three-headed-dog-boss-sp-cmvhh803.png' },
+    terrain: {
+      floors: ['#29362f', '#354239', '#46514a'], details: ['#3c4c42', '#4c5c50', '#5c6c62'],
+      wall: '#17231e', brick: '#304039', accent: '#b6d9be', glow: 'rgba(151, 190, 162, 0.26)',
+      fog: 'rgba(15, 28, 23, 0.68)', dungeonFog: 'rgba(10, 24, 19, 0.87)',
+      floorTint: 'rgba(29, 66, 46, 0.42)', prop: '#6b7c70'
+    },
+    atmosphere: {
+      altarTitle: '🦴 ALTAR DE CERBERO 🦴', altarPrompt: '[ ACÉRCATE PARA DESPERTAR ]',
+      altarBossActive: '☠ CERBERO HA DESPERTADO ☠', dungeonReturnTitle: 'VOLVER A GULA'
+    }
   }
 };
