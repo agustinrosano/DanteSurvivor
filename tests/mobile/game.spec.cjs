@@ -85,3 +85,52 @@ test('keyboard pause works and returning to menu hides touch controls', async ({
   await expect(page.locator('#menu-screen')).toBeVisible();
   await expect(page.locator('#touch-controls')).toBeHidden();
 });
+
+test('permanent upgrades and spent souls survive a reload', async ({ page }) => {
+  // Existing-save fixture at the storage boundary; assertions use the UI.
+  await page.addInitScript(() => {
+    if (!localStorage.getItem('DANTE_QUEST_SAVE_DATA_V1')) {
+      localStorage.setItem('DANTE_QUEST_SAVE_DATA_V1', JSON.stringify({ souls: 300 }));
+    }
+  });
+  await page.goto('/');
+  await page.locator('#btn-upgrades-meta').click();
+  await page.locator('.buy-meta-btn[data-key="health"]').click();
+  await expect(page.locator('#sanctuary-souls-val')).toHaveText('270');
+  await page.reload();
+  await page.locator('#btn-upgrades-meta').click();
+  await expect(page.locator('#sanctuary-souls-val')).toHaveText('270');
+  await expect(page.locator('#sanctuary-grid')).toContainText('Vitalidad Ancestral (Nivel 1/5)');
+});
+
+test('pause cannot dismiss a level-up choice', async ({ page }) => {
+  test.setTimeout(90000);
+  await page.addInitScript(() => {
+    let seed = 42;
+    Math.random = () => { seed = (1664525 * seed + 1013904223) >>> 0; return seed / 4294967296; };
+    // A legitimate upgraded tank save makes reaching the choice independent
+    // of an unupgraded caster dying before collecting enough gems.
+    localStorage.setItem('DANTE_QUEST_SAVE_DATA_V1', JSON.stringify({
+      selectedCharacter: 'thorin',
+      metaUpgrades: { health: 5, attack: 5, speed: 0, magnet: 5 }
+    }));
+  });
+  await page.clock.install();
+  await page.goto('/');
+  await page.locator('#btn-play-solo').click();
+  await page.locator('.roster-card').filter({ hasText: 'Thorin' }).click();
+  await page.locator('#btn-char-to-map').click();
+  await page.locator('#btn-start-expedition').click();
+  for (let i = 0; i < 20 && !await page.locator('#level-up-modal').isVisible(); i++) {
+    await page.clock.runFor(3000);
+  }
+  await expect(page.locator('#level-up-modal')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#level-up-modal')).toBeVisible();
+  await expect(page.locator('#pause-modal')).toBeHidden();
+  const time = await page.locator('#hud-timer').innerText();
+  await page.clock.runFor(1500);
+  await expect(page.locator('#hud-timer')).toHaveText(time);
+  await page.locator('.upgrade-card').first().click();
+  await expect(page.locator('#level-up-modal')).toBeHidden();
+});

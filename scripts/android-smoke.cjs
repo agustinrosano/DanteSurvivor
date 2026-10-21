@@ -34,18 +34,22 @@ async function dismissFullscreenHint() {
 (async () => {
   console.log(device('install', '-r', apk));
   console.log(device('shell', 'am', 'start', '-W', '-n', `${appId}/.MainActivity`));
-  let socket;
-  for (let i = 0; i < 60; i++) {
-    const pid = device('shell', 'pidof', appId).split(' ')[0];
-    socket = device('shell', 'cat', '/proc/net/unix').split('\n').find(line => line.includes(`webview_devtools_remote_${pid}`))?.split('@')[1].trim();
-    if (socket) break;
-    await delay(500);
-  }
-  if (!socket) throw new Error('Debug WebView was not available. Use a debug APK.');
-  const port = device('forward', 'tcp:0', `localabstract:${socket}`);
+  let port;
   let browser;
-  try {
+  async function attach() {
+    let socket;
+    for (let i = 0; i < 60; i++) {
+      const pid = device('shell', 'pidof', appId).split(' ')[0];
+      socket = device('shell', 'cat', '/proc/net/unix').split('\n').find(line => line.includes(`webview_devtools_remote_${pid}`))?.split('@')[1].trim();
+      if (socket) break;
+      await delay(500);
+    }
+    if (!socket) throw new Error('Debug WebView was not available. Use a debug APK.');
+    port = device('forward', 'tcp:0', `localabstract:${socket}`);
     browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`, { noDefaults: true });
+  }
+  try {
+    await attach();
     const page = browser.contexts()[0].pages()[0];
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
@@ -61,6 +65,7 @@ async function dismissFullscreenHint() {
     await page.locator('#btn-play-solo').click();
     await page.locator('.roster-card').filter({ hasText: 'Lyra' }).click();
     await page.locator('#btn-char-to-map').click();
+    await page.locator('.map-card').filter({ hasText: 'Limbo' }).click();
     await page.locator('#btn-start-expedition').click();
     await expect(page.locator('#hud')).toBeVisible();
     await expect(page.locator('#hud-timer')).not.toHaveText('00:00', { timeout: 15000 });
@@ -84,10 +89,22 @@ async function dismissFullscreenHint() {
     await page.reload();
     await page.locator('#btn-play-solo').click();
     await expect(page.locator('.roster-card.active')).toContainText('Lyra');
+    await browser.close();
+    browser = null;
+    device('forward', '--remove', `tcp:${port}`);
+    port = null;
+    device('shell', 'am', 'force-stop', appId);
+    device('shell', 'am', 'start', '-W', '-n', `${appId}/.MainActivity`);
+    await attach();
+    const reopenedPage = browser.contexts()[0].pages()[0];
+    await reopenedPage.locator('#btn-play-solo').click();
+    await expect(reopenedPage.locator('.roster-card.active')).toContainText('Lyra');
+    await reopenedPage.locator('#btn-char-to-map').click();
+    await expect(reopenedPage.locator('.map-card.active')).toContainText('Limbo');
     expect(errors).toEqual([]);
-    console.log(`Android smoke passed on ${serial}: OS ${device('shell', 'getprop', 'ro.build.version.release')}; landscape, local assets, solo, Back, Home/resume, selection persistence.`);
+    console.log(`Android smoke passed on ${serial}: OS ${device('shell', 'getprop', 'ro.build.version.release')}; landscape, local assets, solo, Back, Home/resume, hero/map persistence after process restart.`);
   } finally {
     await browser?.close();
-    device('forward', '--remove', `tcp:${port}`);
+    if (port) device('forward', '--remove', `tcp:${port}`);
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });

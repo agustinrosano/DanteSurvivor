@@ -1,6 +1,6 @@
 # Port Android: investigacion inicial
 
-Estado: investigacion completada; decisiones de producto pendientes.
+Registro del estado anterior a la implementacion. Las decisiones ya se aprobaron y el port esta implementado; consultar `ANDROID.md` y `ANDROID_VALIDATION.md` para uso y resultados actuales.
 
 ## Punto de partida
 
@@ -30,17 +30,18 @@ Estado: investigacion completada; decisiones de producto pendientes.
 - En PowerShell, usar `npm.cmd` y `npx.cmd` si la politica local bloquea los lanzadores `.ps1`; no es necesario cambiar esa politica.
 - No se ha generado un APK ni probado la ejecucion del juego en Android.
 
-## Decisiones pendientes
+## Decisiones confirmadas por el usuario
 
-1. Primer entregable: APK Android con Capacitor o version para navegador Android.
-2. Orientacion horizontal o ambas orientaciones.
-3. Modelo de telefono y version de Android para las pruebas de aceptacion.
+1. APK Android con Capacitor y conservacion de la version de navegador.
+2. Orientacion horizontal.
+3. Moto G75 con Android 16.
+4. Tickets locales, cuatro tareas y pruebas desde la interfaz del jugador y el APK.
 
 ## Propuesta para revisar
 
 APK Android con Capacitor, experiencia horizontal y controles tactiles a ambos lados. Preservar las funciones existentes, incluidos guardado y cooperativo. Validar el recorrido real: iniciar partida, moverse y usar acciones simultaneamente, subir de nivel, pausar, cambiar de aplicacion y volver, terminar partida y recuperar el progreso tras reiniciar.
 
-Con las decisiones resueltas, sintetizar la especificacion con `to-spec`, proponer tickets con sus dependencias mediante `to-tickets` e implementar con pruebas de comportamiento y revision. El setup local de las skills aun no fue aplicado: la propuesta anterior de tickets Markdown sigue pendiente de confirmacion.
+La especificacion y los cuatro tickets aprobados estan en `.scratch/android-mobile-port/`. El setup local quedo aplicado en `CLAUDE.md` y `docs/agents/`. Se usaron `explorer`, `grilling`, `to-spec`, `to-tickets`, `implement`, `tdd` y `code-review`.
 
 ## Documentacion consultada
 

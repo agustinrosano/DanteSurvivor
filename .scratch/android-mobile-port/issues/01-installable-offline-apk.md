@@ -4,9 +4,13 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** in-progress
+**Status:** done
 
-- [ ] Android native project and repeatable build/sync commands exist.
-- [ ] APK builds and opens in an Android environment.
-- [ ] Solo starts with bundled art, audio and fonts without an external web server.
-- [ ] Browser build still works.
+- [x] Android native project and repeatable build/sync commands exist.
+- [x] APK builds and opens in an Android environment.
+- [x] Solo starts with bundled art, audio and fonts without an external web server.
+- [x] Browser build still works.
+
+## Verification
+
+Verified: production bundle and debug APK built; installed/launched and played solo in Android 16 emulator. Required fonts/art/audio are local. Browser start with external services blocked passes.

@@ -14,6 +14,7 @@ class SoundSystem {
     this.suspended = false;
     this.musicRequested = false;
     this.activeEffects = new Set();
+    this.activeVoices = new Set();
 
     // Preload Genex generated assets
     this.loadGenexAssets();
@@ -83,7 +84,7 @@ class SoundSystem {
     this.enabled = !this.enabled;
     if (!this.enabled) {
       this.musicAudio?.pause();
-      for (const effect of this.activeEffects) effect.pause();
+      this.stopEffects();
       this.ctx?.suspend().catch(() => {});
     } else {
       if (!this.suspended) {
@@ -97,14 +98,22 @@ class SoundSystem {
   suspend() {
     this.suspended = true;
     this.musicAudio?.pause();
+    this.stopEffects();
+    this.ctx?.suspend().catch(() => {});
+  }
+
+  stopEffects() {
     for (const effect of this.activeEffects) effect.pause();
     this.activeEffects.clear();
-    this.ctx?.suspend().catch(() => {});
+    for (const voice of this.activeVoices) {
+      try { voice.stop(); } catch { /* It may already have ended. */ }
+    }
+    this.activeVoices.clear();
   }
 
   resume() {
     this.suspended = false;
-    if (!this.enabled || this.suspended) return;
+    if (!this.enabled) return;
     this.init();
     if (this.musicRequested) this.playMusic();
   }
@@ -121,6 +130,13 @@ class SoundSystem {
       this.activeEffects.delete(effect);
       if (this.enabled && !this.suspended) fallback();
     });
+  }
+
+  createVoice() {
+    const voice = this.ctx.createOscillator();
+    this.activeVoices.add(voice);
+    voice.onended = () => this.activeVoices.delete(voice);
+    return voice;
   }
 
   // --- Sound Effects ---
@@ -176,7 +192,7 @@ class SoundSystem {
   synthSlash() {
     if (!this.ctx || !this.enabled || this.suspended) return;
     try {
-      const osc = this.ctx.createOscillator();
+      const osc = this.createVoice();
       const gain = this.ctx.createGain();
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(140, this.ctx.currentTime);
@@ -193,7 +209,7 @@ class SoundSystem {
   synthHit() {
     if (!this.ctx || !this.enabled || this.suspended) return;
     try {
-      const osc = this.ctx.createOscillator();
+      const osc = this.createVoice();
       const gain = this.ctx.createGain();
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(180, this.ctx.currentTime);
@@ -210,7 +226,7 @@ class SoundSystem {
   synthCrit() {
     if (!this.ctx || !this.enabled || this.suspended) return;
     try {
-      const osc = this.ctx.createOscillator();
+      const osc = this.createVoice();
       const gain = this.ctx.createGain();
       osc.type = 'square';
       osc.frequency.setValueAtTime(350, this.ctx.currentTime);
@@ -227,7 +243,7 @@ class SoundSystem {
   synthGem() {
     if (!this.ctx || !this.enabled || this.suspended) return;
     try {
-      const osc = this.ctx.createOscillator();
+      const osc = this.createVoice();
       const gain = this.ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(587.33, this.ctx.currentTime); // D5
@@ -246,7 +262,7 @@ class SoundSystem {
     try {
       const notes = [261.63, 329.63, 392.00, 523.25, 659.25]; // C, E, G, C, E
       notes.forEach((freq, idx) => {
-        const osc = this.ctx.createOscillator();
+        const osc = this.createVoice();
         const gain = this.ctx.createGain();
         const start = this.ctx.currentTime + idx * 0.08;
         osc.type = 'triangle';
@@ -264,7 +280,7 @@ class SoundSystem {
   synthDodge() {
     if (!this.ctx || !this.enabled || this.suspended) return;
     try {
-      const osc = this.ctx.createOscillator();
+      const osc = this.createVoice();
       const gain = this.ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(220, this.ctx.currentTime);
@@ -281,7 +297,7 @@ class SoundSystem {
   synthBossRoar() {
     if (!this.ctx || !this.enabled || this.suspended) return;
     try {
-      const osc = this.ctx.createOscillator();
+      const osc = this.createVoice();
       const gain = this.ctx.createGain();
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(65, this.ctx.currentTime);
@@ -299,7 +315,7 @@ class SoundSystem {
   synthExplosion() {
     if (!this.ctx || !this.enabled || this.suspended) return;
     try {
-      const osc = this.ctx.createOscillator();
+      const osc = this.createVoice();
       const gain = this.ctx.createGain();
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(100, this.ctx.currentTime);
