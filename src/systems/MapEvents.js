@@ -1,3 +1,5 @@
+import { moveWithCollisions } from '../world/Movement.js';
+
 // Bounded, local hazards shared by weather, creatures and circle bosses.
 export class MapEvents {
   constructor(mapId = 'bosque') {
@@ -90,12 +92,7 @@ export class MapEvents {
         const angle = zone.type === 'tornado' ? Math.atan2(player.y - zone.y, player.x - zone.x) + Math.PI / 3 : zone.angle;
         const force = zone.type === 'tornado' ? 140 : 100;
         // Resolve each axis through the same collision boundary as player movement.
-        player.x += Math.cos(angle) * force * dt;
-        const colX = world.checkCollision(player.x, player.y, player.radius);
-        if (colX.colliding) player.x += colX.pushX;
-        player.y += Math.sin(angle) * force * dt;
-        const colY = world.checkCollision(player.x, player.y, player.radius);
-        if (colY.colliding) player.y += colY.pushY;
+        moveWithCollisions(player, Math.cos(angle) * force * dt, Math.sin(angle) * force * dt, world);
       }
     }
   }

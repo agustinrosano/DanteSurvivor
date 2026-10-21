@@ -335,7 +335,7 @@ export class MenuSystem {
     this.levelUpModal.classList.remove('hidden');
   }
 
-  showEndGame(isVictory, timeStr, kills, level, souls) {
+  showEndGame(isVictory, timeStr, kills, level, souls, mapId = 'bosque') {
     if (!this.endGameModal) return;
     const title = document.getElementById('end-game-title');
     const sub = document.getElementById('end-game-subtitle');
@@ -344,11 +344,12 @@ export class MenuSystem {
       if (isVictory) {
         title.textContent = '¡VICTORIA ÉPICA!';
         title.className = 'frame-title text-victory';
-        sub.textContent = 'El Rey de los Condenados ha sido derrotado.';
+        const bossName = MAPS[mapId]?.boss?.name || (mapId === 'limbo' ? 'El Arconte de las Ánimas' : 'El Rey de los Condenados');
+        sub.textContent = `${bossName} ha sido derrotado.`;
       } else {
         title.textContent = 'HAS CAÍDO EN COMBATE';
         title.className = 'frame-title text-defeat';
-        sub.textContent = 'El bosque reclama tu alma mortal...';
+        sub.textContent = `Tu expedición por ${MAPS[mapId]?.shortName || 'El Bosque'} ha terminado.`;
       }
     }
 

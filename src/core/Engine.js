@@ -521,6 +521,8 @@ export class GameEngine {
 
   handleGameOver(isVictory) {
     this.isPlaying = false;
+    this.events.clear();
+    this.input.reset();
     const p = this.localPlayer;
     saveData.addSouls(p.souls);
     saveData.recordRun(p.kills, p.level, Math.floor(this.gameTime), isVictory);
@@ -529,7 +531,7 @@ export class GameEngine {
     const secs = Math.floor(this.gameTime % 60);
     const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
-    this.menus.showEndGame(isVictory, timeStr, p.kills, p.level, p.souls);
+    this.menus.showEndGame(isVictory, timeStr, p.kills, p.level, p.souls, this.currentMapId);
   }
 
   render() {

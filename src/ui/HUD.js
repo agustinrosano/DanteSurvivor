@@ -20,6 +20,8 @@ export class HUDSystem {
     this.bossHpFill = document.getElementById('boss-hp-fill');
     this.bossPhaseBadge = document.getElementById('boss-phase-badge');
     this.bossNameDisplay = document.getElementById('boss-name');
+    this.bossAvatar = document.querySelector('.boss-hud-avatar');
+    this.defaultBossAvatar = this.bossAvatar?.getAttribute('src');
     this.biomeDisplay = document.getElementById('hud-biome-name');
     this.eventDisplay = document.getElementById('map-event-status');
     this.minimapLabel = document.getElementById('minimap-label');
@@ -78,6 +80,11 @@ export class HUDSystem {
     if (boss && boss.isAlive) {
       if (this.bossBarContainer) this.bossBarContainer.classList.remove('hidden');
       if (this.bossNameDisplay && boss.name) this.bossNameDisplay.textContent = boss.name.toUpperCase();
+      if (this.bossAvatar) {
+        const src = boss.sprite?.getAttribute('src') || this.defaultBossAvatar;
+        if (this.bossAvatar.getAttribute('src') !== src) this.bossAvatar.setAttribute('src', src);
+        this.bossAvatar.alt = boss.name;
+      }
       const bPct = Math.max(0, Math.min(100, (boss.hp / boss.maxHp) * 100));
       if (this.bossHpFill) this.bossHpFill.style.width = `${bPct}%`;
       if (this.bossPhaseBadge) this.bossPhaseBadge.textContent = `FASE ${boss.phase}`;
@@ -174,20 +181,12 @@ export class HUDSystem {
         mCtx.fill();
       }
       if (guideAltar) {
-        const dx = (world.altar.x - player.x) * scale;
-        const dy = (world.altar.y - player.y) * scale;
-        const ratio = Math.min(1, (cx - 10) / Math.max(1, Math.abs(dx)), (cy - 10) / Math.max(1, Math.abs(dy)));
-        mCtx.save();
-        mCtx.translate(cx + dx * ratio, cy + dy * ratio);
-        mCtx.rotate(Math.atan2(dy, dx));
-        mCtx.fillStyle = '#fde68a'; mCtx.strokeStyle = '#17110c'; mCtx.lineWidth = 2;
-        mCtx.beginPath(); mCtx.moveTo(7, 0); mCtx.lineTo(-5, -5); mCtx.lineTo(-2, 0); mCtx.lineTo(-5, 5); mCtx.closePath();
-        mCtx.fill(); mCtx.stroke(); mCtx.restore();
+        this.drawMinimapPointer((world.altar.x - player.x) * scale, (world.altar.y - player.y) * scale, '#fde68a');
       }
     }
 
     // Draw Boss on Minimap
-    if (boss && boss.isAlive) {
+    if (!isDungeon && boss && boss.isAlive) {
       const bX = cx + (boss.x - player.x) * scale;
       const bY = cy + (boss.y - player.y) * scale;
       if (bX >= 0 && bX <= w && bY >= 0 && bY <= h) {
@@ -195,6 +194,8 @@ export class HUDSystem {
         mCtx.beginPath();
         mCtx.arc(bX, bY, 5, 0, Math.PI * 2);
         mCtx.fill();
+      } else {
+        this.drawMinimapPointer(bX - cx, bY - cy, '#ef4444');
       }
     }
 
@@ -203,6 +204,18 @@ export class HUDSystem {
     mCtx.beginPath();
     mCtx.arc(cx, cy, 3.5, 0, Math.PI * 2);
     mCtx.fill();
+  }
+
+  drawMinimapPointer(dx, dy, color) {
+    const ctx = this.minimapCtx;
+    const cx = this.minimapCanvas.width / 2, cy = this.minimapCanvas.height / 2;
+    const ratio = Math.min(1, (cx - 10) / Math.max(1, Math.abs(dx)), (cy - 10) / Math.max(1, Math.abs(dy)));
+    ctx.save();
+    ctx.translate(cx + dx * ratio, cy + dy * ratio);
+    ctx.rotate(Math.atan2(dy, dx));
+    ctx.fillStyle = color; ctx.strokeStyle = '#17110c'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-5, -5); ctx.lineTo(-2, 0); ctx.lineTo(-5, 5); ctx.closePath();
+    ctx.fill(); ctx.stroke(); ctx.restore();
   }
 
   updateAction(button, remaining) {

@@ -101,8 +101,24 @@ async function dismissFullscreenHint() {
     await expect(reopenedPage.locator('.roster-card.active')).toContainText('Lyra');
     await reopenedPage.locator('#btn-char-to-map').click();
     await expect(reopenedPage.locator('.map-card.active')).toContainText('Limbo');
+    // Exercise both new maps in the installed APK, without replacing save data.
+    reopenedPage.on('pageerror', error => errors.push(error.message));
+    for (const [mapId, name] of [['lujuria', 'Lujuria'], ['gula', 'Gula']]) {
+      await reopenedPage.locator(`.map-card[data-map="${mapId}"]`).click();
+      await expect.poll(() => reopenedPage.locator(`.map-card[data-map="${mapId}"] img`).evaluate(img => img.naturalWidth)).toBeGreaterThan(0);
+      await reopenedPage.locator('#btn-start-expedition').click();
+      await expect(reopenedPage.locator('#hud-biome-name')).toContainText(name);
+      await expect(reopenedPage.locator('#hud-timer')).not.toHaveText('00:00');
+      writeFileSync(path.join(output, `android-device-${mapId}.png`), execFileSync(adb, ['-s', serial, 'exec-out', 'screencap', '-p']));
+      device('shell', 'input', 'keyevent', '4');
+      await expect(reopenedPage.locator('#pause-modal')).toBeVisible();
+      await reopenedPage.locator('#btn-pause-quit').click();
+      await reopenedPage.locator('#btn-play-solo').click();
+      await reopenedPage.locator('#btn-char-to-map').click();
+      await expect(reopenedPage.locator('.map-card.active')).toHaveAttribute('data-map', mapId);
+    }
     expect(errors).toEqual([]);
-    console.log(`Android smoke passed on ${serial}: OS ${device('shell', 'getprop', 'ro.build.version.release')}; landscape, local assets, solo, Back, Home/resume, hero/map persistence after process restart.`);
+    console.log(`Android smoke passed on ${serial}: OS ${device('shell', 'getprop', 'ro.build.version.release')}; landscape, local assets, solo, Back, Home/resume, hero/map persistence after process restart, Lujuria and Gula.`);
   } finally {
     await browser?.close();
     if (port) device('forward', '--remove', `tcp:${port}`);

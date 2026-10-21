@@ -1,3 +1,5 @@
+import { moveWithCollisions } from '../world/Movement.js';
+
 // Circle guardians share their encounter clock, but have distinct attack plans.
 export class CircleBoss {
   constructor(x, y, definition, playerCount = 1) {
@@ -69,7 +71,7 @@ export class CircleBoss {
     if (this.charge) {
       const distance = Math.min(this.charge.remaining, 340 * dt);
       const oldX = this.x, oldY = this.y;
-      this.move(Math.cos(this.charge.angle) * distance, Math.sin(this.charge.angle) * distance, world);
+      moveWithCollisions(this, Math.cos(this.charge.angle) * distance, Math.sin(this.charge.angle) * distance, world);
       this.charge.remaining -= distance;
       for (const p of living) if (Math.hypot(p.x - this.x, p.y - this.y) < this.radius + p.radius) p.takeDamage(32);
       if (this.charge.remaining <= 0 || Math.hypot(this.x - oldX, this.y - oldY) < 0.1) this.charge = null;
@@ -81,7 +83,7 @@ export class CircleBoss {
     const distance = Math.hypot(target.x - this.x, target.y - this.y);
     if (distance > this.radius + 45) {
       const speed = (this.kind === 'cerberus' ? 64 : 58) + this.phase * 8;
-      this.move(Math.cos(angle) * speed * dt, Math.sin(angle) * speed * dt, world);
+      moveWithCollisions(this, Math.cos(angle) * speed * dt, Math.sin(angle) * speed * dt, world);
     }
     if (distance < this.radius + target.radius) target.takeDamage(18);
     this.attackTimer -= dt;
@@ -94,15 +96,6 @@ export class CircleBoss {
       this.windup = this.attack.type === 'charge' ? 1.2 : 1;
       this.attackTimer = this.phase === 3 ? 2.7 : 3.7;
     }
-  }
-
-  move(dx, dy, world) {
-    this.x += dx;
-    const colX = world.checkCollision(this.x, this.y, this.radius);
-    if (colX.colliding) this.x += colX.pushX;
-    this.y += dy;
-    const colY = world.checkCollision(this.x, this.y, this.radius);
-    if (colY.colliding) this.y += colY.pushY;
   }
 
   execute(players, particles, sound, camera, onSpawnProjectile, events) {

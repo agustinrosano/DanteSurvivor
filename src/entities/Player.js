@@ -4,6 +4,7 @@
 
 import { CHARACTERS } from '../systems/Characters.js';
 import { drawSprite, directionFromVector } from '../core/Sprites.js';
+import { moveWithCollisions } from '../world/Movement.js';
 
 export class Player {
   constructor(id = 'local', charId = 'dante', x = 0, y = 0, isLocal = true) {
@@ -193,17 +194,7 @@ export class Player {
     }
 
     // 5. Position integration with World Collision
-    this.x += this.vx * dt;
-    const colX = world.checkCollision(this.x, this.y, this.radius);
-    if (colX.colliding) {
-      this.x += colX.pushX;
-    }
-
-    this.y += this.vy * dt;
-    const colY = world.checkCollision(this.x, this.y, this.radius);
-    if (colY.colliding) {
-      this.y += colY.pushY;
-    }
+    moveWithCollisions(this, this.vx * dt, this.vy * dt, world);
   }
 
   render(ctx, camera) {
