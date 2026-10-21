@@ -4,8 +4,15 @@
 
 import { drawSprite, directionFromVector } from '../core/Sprites.js';
 
+const CIRCLE_ENEMIES = {
+  tempest_soul: { hp: 40, speed: 145, damage: 12, radius: 15, xpValue: 4, sprite: 'wraith', tint: 'rgba(235, 139, 171, 0.35)', scale: 1, phasesThroughWalls: true },
+  siren: { hp: 48, speed: 82, damage: 13, radius: 15, xpValue: 5, sprite: 'skeleton', tint: 'rgba(224, 120, 158, 0.30)', scale: 1 },
+  glutton: { hp: 130, speed: 50, damage: 20, radius: 22, xpValue: 7, sprite: 'zombie', tint: 'rgba(133, 163, 124, 0.35)', scale: 1.35 },
+  mireling: { hp: 42, speed: 110, damage: 12, radius: 14, xpValue: 4, sprite: 'wolf', tint: 'rgba(155, 193, 171, 0.35)', scale: 0.95 }
+};
+
 export class Enemy {
-  constructor(type = 'zombie', x = 0, y = 0, isElite = false) {
+  constructor(type = 'zombie', x = 0, y = 0, isElite = false, healthMultiplier = 1) {
     this.type = type;
     this.x = x;
     this.y = y;
@@ -92,6 +99,19 @@ export class Enemy {
       this.radius = isElite ? 22 : 14;
       this.xpValue = isElite ? 10 : 1;
     }
+    this.variant = CIRCLE_ENEMIES[type] || null;
+    if (this.variant) {
+      const { hp, speed, damage, radius, xpValue, phasesThroughWalls } = this.variant;
+      this.hp = hp * (isElite ? 4 : 1);
+      this.speed = speed * (isElite ? 1.12 : 1);
+      this.damage = damage;
+      this.radius = radius * (isElite ? 1.2 : 1);
+      this.xpValue = xpValue * (isElite ? 4 : 1);
+      this.phasesThroughWalls = Boolean(phasesThroughWalls);
+      this.shootTimer = 1.2 + Math.random();
+    }
+    this.hp = Math.ceil(this.hp * healthMultiplier);
+    this.maxHp = this.hp;
   }
 
   takeDamage(amount, particles, sourceAngle = null) {
@@ -116,7 +136,7 @@ export class Enemy {
     return amount;
   }
 
-  update(dt, players, world, nearbyEnemies) {
+  update(dt, players, world, nearbyEnemies, projectiles = null) {
     if (!this.isAlive) return;
 
     if (this.damageFlashTimer > 0) this.damageFlashTimer -= dt;
@@ -142,6 +162,19 @@ export class Enemy {
     const angle = Math.atan2(target.y - this.y, target.x - this.x);
     let desiredVx = Math.cos(angle) * this.speed;
     let desiredVy = Math.sin(angle) * this.speed;
+    if (this.type === 'siren') {
+      const approach = minDist < 180 ? -1 : minDist < 260 ? 0 : 1;
+      desiredVx *= approach; desiredVy *= approach;
+      this.shootTimer -= dt;
+      if (projectiles && minDist < 500 && this.shootTimer <= 0) {
+        projectiles.spawn(this.x, this.y, Math.cos(angle), Math.sin(angle), 145, this.damage, 'boss_orb', 1, true);
+        this.shootTimer = 3;
+      }
+    } else if (this.type === 'tempest_soul') {
+      const drift = Math.sin(this.animTimer * 3) * 30;
+      desiredVx += Math.cos(angle + Math.PI / 2) * drift;
+      desiredVy += Math.sin(angle + Math.PI / 2) * drift;
+    }
 
     // 2. Horde Separation (Soft repulsion from nearby horde members)
     let sepX = 0;
@@ -217,12 +250,12 @@ export class Enemy {
 
     const isFlashing = this.damageFlashTimer > 0;
     const dir = directionFromVector(this.vx, this.vy, this.facing > 0 ? 'east' : 'west');
-    const scale = this.isElite ? 1.3 : 1.0;
-    const drawn = drawSprite(ctx, `enemies/${this.type}`, this.x, this.y + this.radius, {
+    const scale = (this.isElite ? 1.3 : 1.0) * (this.variant?.scale || 1);
+    const drawn = drawSprite(ctx, `enemies/${this.variant?.sprite || this.type}`, this.x, this.y + this.radius, {
       dir,
       anim: 'walk',
       time: this.animTimer,
-      tint: isFlashing ? '#ffffff' : null,
+      tint: isFlashing ? '#ffffff' : this.variant?.tint,
       scale
     });
 

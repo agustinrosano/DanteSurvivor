@@ -4,6 +4,7 @@
 
 import { CHARACTERS } from '../systems/Characters.js';
 import { drawSprite, directionFromVector } from '../core/Sprites.js';
+import { moveWithCollisions } from '../world/Movement.js';
 
 export class Player {
   constructor(id = 'local', charId = 'dante', x = 0, y = 0, isLocal = true) {
@@ -22,6 +23,7 @@ export class Player {
 
     // Base & Modified Stats
     this.stats = { ...this.charData.stats };
+    this.environmentSpeedMultiplier = 1;
     this.hp = this.stats.hp;
     this.maxHp = this.stats.hp;
 
@@ -164,7 +166,7 @@ export class Player {
       }
     } else {
       // Normal movement
-      let speed = this.stats.speed;
+      let speed = this.stats.speed * this.environmentSpeedMultiplier;
       if (this.skillActiveDuration > 0 && this.charData.id === 'dante') {
         speed *= 1.35; // Furia del Guerrero speed buff
       }
@@ -192,17 +194,7 @@ export class Player {
     }
 
     // 5. Position integration with World Collision
-    this.x += this.vx * dt;
-    const colX = world.checkCollision(this.x, this.y, this.radius);
-    if (colX.colliding) {
-      this.x += colX.pushX;
-    }
-
-    this.y += this.vy * dt;
-    const colY = world.checkCollision(this.x, this.y, this.radius);
-    if (colY.colliding) {
-      this.y += colY.pushY;
-    }
+    moveWithCollisions(this, this.vx * dt, this.vy * dt, world);
   }
 
   render(ctx, camera) {

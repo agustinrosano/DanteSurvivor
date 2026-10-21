@@ -2,6 +2,8 @@
 // DANTE QUEST — Enhanced Dynamic Lighting, Colored Auras & Projectile Glow
 // ============================================================================
 
+import { MAPS } from '../systems/Maps.js';
+
 export class LightingSystem {
   constructor() {
     this.lightCanvas = document.createElement('canvas');
@@ -21,10 +23,13 @@ export class LightingSystem {
 
     const lCtx = this.lightCtx;
     const isLimbo = mapId === 'limbo';
+    const theme = MAPS[mapId]?.terrain;
 
     // 1. Fill light canvas with dark gothic ambient fog
     lCtx.clearRect(0, 0, w, h);
-    if (isLimbo) {
+    if (theme) {
+      lCtx.fillStyle = isDungeon ? theme.dungeonFog : theme.fog;
+    } else if (isLimbo) {
       lCtx.fillStyle = isDungeon ? 'rgba(8, 4, 16, 0.96)' : 'rgba(10, 6, 22, 0.88)';
     } else {
       lCtx.fillStyle = isDungeon ? 'rgba(5, 3, 10, 0.95)' : `rgba(7, 5, 11, ${this.ambientDarkness})`;
@@ -76,7 +81,10 @@ export class LightingSystem {
         const tScreen = camera.worldToScreen(torch.x, torch.y);
         const warmRadius = 110 * camera.zoom;
         const grad = ctx.createRadialGradient(tScreen.x, tScreen.y, 0, tScreen.x, tScreen.y, warmRadius);
-        if (isLimbo) {
+        if (theme) {
+          grad.addColorStop(0, theme.glow);
+          grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        } else if (isLimbo) {
           grad.addColorStop(0, 'rgba(168, 85, 247, 0.32)');
           grad.addColorStop(0.5, 'rgba(56, 189, 248, 0.14)');
           grad.addColorStop(1, 'rgba(0, 0, 0, 0)');

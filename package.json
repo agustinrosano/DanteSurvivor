@@ -4,13 +4,23 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "android:sync": "node scripts/android.mjs sync",
+    "android:apk": "node scripts/android.mjs apk",
+    "android:open": "node scripts/android.mjs open",
+    "android:smoke": "node scripts/android-smoke.cjs",
+    "test:mobile": "playwright test"
   },
   "devDependencies": {
+    "@capacitor/cli": "8.5.3",
     "@genex-ai/cli-demo": "^1.36.9",
+    "@playwright/test": "1.64.1",
     "vite": "^8.3.4"
   },
   "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.5.3",
     "peerjs": "^1.5.5"
   }
 }

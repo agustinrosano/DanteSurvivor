@@ -2,6 +2,8 @@
 // DANTE QUEST — Procedural Infinite World (Chunk Generation & Biomes)
 // ============================================================================
 
+import { MAPS } from '../systems/Maps.js';
+
 // Simple deterministic PRNG based on Mulberry32
 function mulberry32(seed) {
   return function() {
@@ -45,6 +47,8 @@ export class ProceduralWorld {
   constructor(seed = 1337, mapId = 'bosque') {
     this.seed = seed;
     this.mapId = mapId;
+    this.map = MAPS[mapId] || MAPS.bosque;
+    this.theme = this.map.terrain;
     this.tileSize = 48; // px
     this.chunkSize = 16; // 16x16 tiles per chunk
     this.chunkPx = this.tileSize * this.chunkSize; // 768px
@@ -61,6 +65,7 @@ export class ProceduralWorld {
       { id: 'crypt_4', name: isLimbo ? 'Pórtico del Destino' : 'Sepulcro Antiguo', x: -650, y: 680, radius: 42, seed: this.seed + 404, dungeonLevel: 4 }
     ];
     this.cryptEntrance = this.dungeonEntrances[0]; // Backwards compatibility
+    if (this.map.dungeonNames) this.dungeonEntrances.forEach((entrance, i) => { entrance.name = this.map.dungeonNames[i]; });
     this.altar = { x: -400, y: 400, radius: 50, activated: false }; // Regional Altar to summon Boss!
 
     this.lanternImg = new Image();
@@ -129,7 +134,9 @@ export class ProceduralWorld {
         const noise = smoothNoise(worldTileX * 0.08, worldTileY * 0.08, this.seed);
 
         let tileType = 'grass';
-        if (isLimbo) {
+        if (this.theme) {
+          tileType = noise < 0.3 ? 'circle_dust' : noise > 0.65 ? 'circle_path' : 'circle_stone';
+        } else if (isLimbo) {
           if (biome === 'limbo_abismo') {
             tileType = noise > 0.4 ? 'spectral_slate' : 'ethereal_void';
           } else if (biome === 'limbo_cenizas') {
@@ -158,9 +165,17 @@ export class ProceduralWorld {
         const distCrypt = Math.hypot(wx - this.cryptEntrance.x, wy - this.cryptEntrance.y);
         const distAltar = Math.hypot(wx - this.altar.x, wy - this.altar.y);
 
-        if (distSpawn > 120 && distCrypt > 100 && distAltar > 100) {
+        const nearEntrance = this.dungeonEntrances.some(entrance => Math.hypot(wx - entrance.x, wy - entrance.y) < 100);
+        if (distSpawn > 120 && distCrypt > 100 && !nearEntrance && distAltar > 220) {
           const rand = rng();
-          if (isLimbo) {
+          if (this.theme) {
+            if (rand < 0.06) {
+              obstacles.push({ x: wx, y: wy, radius: 16, type: 'circle_ruin', variant: rand < 0.03 ? 'pillar' : 'remains' });
+            } else if (rand < 0.075) {
+              const torch = { x: wx, y: wy, radius: 10, type: 'circle_light', lightRadius: 180, chunkKey: this.getChunkKey(cx, cy) };
+              obstacles.push(torch); this.torches.push(torch);
+            }
+          } else if (isLimbo) {
             // Limbo specific obstacles
             if (rand < 0.055) {
               // Runic Monolith
@@ -298,7 +313,11 @@ export class ProceduralWorld {
         let baseColor = '#1c281e';
         let detailColor = '#152016';
 
-        if (tile.type === 'spectral_slate') {
+        if (this.theme) {
+          const index = tile.type === 'circle_dust' ? 0 : tile.type === 'circle_path' ? 2 : 1;
+          baseColor = this.theme.floors[index];
+          detailColor = this.theme.details[index];
+        } else if (tile.type === 'spectral_slate') {
           baseColor = '#181428';
           detailColor = '#291e42';
         } else if (tile.type === 'ethereal_void') {
@@ -352,7 +371,25 @@ export class ProceduralWorld {
       for (const obs of chunk.obstacles) {
         if (!camera.isInView(obs.x, obs.y, 60)) continue;
 
-        if (obs.type === 'monolith') {
+        if (obs.type === 'circle_ruin' || obs.type === 'circle_light') {
+          ctx.fillStyle = 'rgba(0,0,0,0.35)';
+          ctx.beginPath(); ctx.ellipse(obs.x, obs.y + 8, 20, 9, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = this.theme.prop;
+          if (obs.type === 'circle_light') {
+            ctx.fillRect(obs.x - 7, obs.y - 14, 14, 20);
+            ctx.fillStyle = this.theme.accent;
+            ctx.beginPath(); ctx.arc(obs.x, obs.y - 20 + Math.sin(Date.now() * 0.003 + obs.x) * 3, 5, 0, Math.PI * 2); ctx.fill();
+          } else if (obs.variant === 'pillar') {
+            ctx.fillRect(obs.x - 12, obs.y - 25, 24, 32);
+            ctx.fillStyle = this.theme.wall; ctx.fillRect(obs.x - 7, obs.y - 23, 3, 28);
+            ctx.fillStyle = this.theme.accent; ctx.fillRect(obs.x - 14, obs.y - 28, 28, 5);
+          } else {
+            ctx.fillRect(obs.x - 17, obs.y - 4, 34, 10);
+            ctx.fillStyle = this.theme.accent;
+            ctx.fillRect(obs.x - 8, obs.y - 10, 10, 9);
+            ctx.fillRect(obs.x + 7, obs.y - 6, 3, 14);
+          }
+        } else if (obs.type === 'monolith') {
           // Limbo Runic Monolith (Levitating ancient obsidian obelisk)
           const levitate = Math.sin(Date.now() * 0.002 + obs.x) * 3;
 
@@ -634,9 +671,9 @@ export class ProceduralWorld {
       ctx.fill();
 
       // Altar slab
-      ctx.fillStyle = isLimbo ? '#140c24' : '#1e1b2e';
+      ctx.fillStyle = this.theme?.wall || (isLimbo ? '#140c24' : '#1e1b2e');
       ctx.fillRect(altar.x - 35, altar.y - 20, 70, 36);
-      ctx.strokeStyle = isLimbo ? '#a855f7' : '#e6b849';
+      ctx.strokeStyle = this.theme?.accent || (isLimbo ? '#a855f7' : '#e6b849');
       ctx.lineWidth = 2;
       ctx.strokeRect(altar.x - 35, altar.y - 20, 70, 36);
 
@@ -649,7 +686,12 @@ export class ProceduralWorld {
       // Altar prompt
       ctx.font = '10px Cinzel, serif';
       ctx.textAlign = 'center';
-      if (isLimbo) {
+      if (this.theme) {
+        const atmosphere = this.map.atmosphere;
+        ctx.fillStyle = this.theme.accent;
+        ctx.fillText(altar.activated ? atmosphere.altarBossActive : atmosphere.altarTitle, altar.x, altar.y - 36);
+        if (!altar.activated) ctx.fillText(atmosphere.altarPrompt, altar.x, altar.y + 32);
+      } else if (isLimbo) {
         ctx.fillStyle = altar.activated ? '#ef4444' : '#c084fc';
         ctx.fillText(altar.activated ? '☠️ EL ARCONTE HA DESPERTADO ☠️' : '🔥 TRONO DEL ARCONTE DE LAS ÁNIMAS 🔥', altar.x, altar.y - 36);
         if (!altar.activated) {

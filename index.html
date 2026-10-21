@@ -5,10 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>DANTE QUEST — 2D Multiplayer Fantasy Survival RPG</title>
   <meta name="description" content="RPG de acción y supervivencia 2D medieval oscuro. Lucha contra hordas, explora mazmorras procedurales y juega en cooperativo multijugador.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=MedievalSharp&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="/fonts/fonts.css" rel="stylesheet">
   <link rel="stylesheet" href="/src/style.css">
+  <link rel="stylesheet" href="/src/mobile.css">
 </head>
 <body>
   <div id="game-container">
@@ -41,6 +40,7 @@
           <div class="timer-box">
             <div class="timer-display" id="hud-timer">00:00</div>
             <div class="timer-sub" id="hud-biome-name">Bosque de los Condenados</div>
+            <div class="timer-sub hidden" id="map-event-status" role="status"></div>
           </div>
 
           <div class="kills-box">
@@ -91,7 +91,7 @@
               <small>ESPACIO</small>
             </button>
             <button id="btn-touch-skill" class="touch-btn skill-btn" aria-label="Habilidad Especial">
-              <span>FURIA</span>
+              <span>HABILIDAD</span>
               <small>Q</small>
             </button>
           </div>

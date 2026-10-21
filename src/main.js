@@ -8,6 +8,7 @@ import { MenuSystem } from './ui/Menus.js';
 import { NetworkSystem } from './core/Network.js';
 import { sound } from './core/Audio.js';
 import { Player } from './entities/Player.js';
+import { initMobileRuntime } from './core/Mobile.js';
 
 window.addEventListener('DOMContentLoaded', () => {
   const canvas = document.getElementById('game-canvas');
@@ -31,6 +32,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   engine = new GameEngine(canvas, hud, menus);
+  initMobileRuntime(engine, menus);
 
   // HUD Pause Button Listener (Desktop and Mobile)
   const btnHudPause = document.getElementById('btn-hud-pause');
@@ -140,9 +142,11 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   // Main 60 FPS Animation Loop
+  let renderedPause = false;
   function gameLoop(time) {
     engine.update(time);
-    engine.render();
+    if (!document.hidden && (!engine.isPaused || !renderedPause)) engine.render();
+    renderedPause = engine.isPaused;
     requestAnimationFrame(gameLoop);
   }
 
