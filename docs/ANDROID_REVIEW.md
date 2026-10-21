@@ -19,3 +19,7 @@ No se informaron incumplimientos funcionales claros ni ampliacion injustificada 
 El rendimiento fisico y la sincronizacion cooperativa permanecen separados de lo verificado en emulador. La comprobacion del progreso ganado durante una expedicion y de las transiciones de audio en el Moto G75 sigue en la lista manual.
 
 Resumen de la primera revision: Standards, dos hallazgos corregidos/documentados; Spec, dos brechas de validacion cubiertas o delimitadas. No se mezclaron ni reclasificaron los hallazgos entre ejes.
+
+## Verificacion de las correcciones
+
+Los mismos dos agentes revisaron de forma independiente `git diff 6e9e116..da05ff0`. Standards confirmo ambos hallazgos resueltos y no encontro riesgos materiales nuevos. Spec considero suficiente la cobertura agregada para esta entrega y no encontro incumplimientos materiales nuevos. Sus limites restantes son la combinacion de progreso ganado durante una expedicion con reinicio del proceso, y el gesto Atras sobre el modal de nivel dentro del APK; ambos quedan en la comprobacion manual del telefono. No se ejecutaron pruebas adicionales durante esta revision estatica.
