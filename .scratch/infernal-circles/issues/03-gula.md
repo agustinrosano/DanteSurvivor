@@ -4,9 +4,12 @@
 
 **Blocked by:** 02: Lujuria completa (reutiliza ciclo y limpieza de eventos).
 
-**Status:** in-progress
+**Status:** done
 
-- [ ] Mapa verde/gris seleccionable, cripta y altar.
-- [ ] Charcos ralentizan, caducan por tiempo/distancia y tienen límite global.
-- [ ] Cerbero de tres cabezas con mordidas, embestida y ataques coordinados.
-- [ ] Victoria y recompensas actuales con bonificación.
+- [x] Mapa verde/gris seleccionable, cripta y altar.
+- [x] Charcos ralentizan, caducan por tiempo/distancia y tienen límite global.
+- [x] Cerbero de tres cabezas con mordidas, embestida y ataques coordinados.
+- [x] Victoria y recompensas actuales con bonificación.
+
+## Validation
+Browser selection/persistence/altar activation pass. Long gameplay test verifies weather, pause and altar guide. Hazard bounds and guardian state transitions reviewed statically. Packaged Android16 start passed; full physical combat/balance remains for phone playtesting.

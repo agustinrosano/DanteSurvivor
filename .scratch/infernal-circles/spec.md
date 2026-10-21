@@ -1,5 +1,5 @@
 # Lujuria y Gula
-Status: in-progress
+Status: done
 Baseline: 352c0a6249e7404ce5fdd92b71ed5e820c4435bc
 Branch: feat/android-mobile-port
 
@@ -21,3 +21,6 @@ Use the already agreed player-interface and packaged-APK seams: browser regressi
 ## Tickets
 01 scaling; 02 Lujuria (blocked by 01); 03 Gula (blocked by 02 shared events);
 04 altar guide (independent); 05 validation/APK (blocked by 01–04).
+
+## Delivery
+All five tickets done. Browser suite: 25 passed, 1 touch-only desktop skip. Web/APK builds and extended Android16 emulator smoke pass. Independent reviews resolved. APK1.1 ready for Moto G75 playtesting; physical performance and full-run balance remain explicit manual checks in docs/CIRCLES_VALIDATION.md.

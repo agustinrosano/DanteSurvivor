@@ -2,6 +2,10 @@
 
 Port en la rama `feat/android-mobile-port`, con Capacitor 8.5.3. Objetivo de prueba fisica: Moto G75 con Android 16. El juego se ejecuta en horizontal y sirve los recursos desde el APK; no necesita un servidor web para jugar en solitario.
 
+La APK 1.1 (versionCode 2) agrega **Lujuria y Gula**, sus guardianes, eventos locales y escalado de vida por minuto/nivel. Desde 02:00 el minimapa orienta hacia el altar. Detalles: [círculos](INFERNAL_CIRCLES.md), [validación](CIRCLES_VALIDATION.md).
+
+Copia identificada de esta entrega: `artifacts/android/dante-quest-circles-v1.1-debug.apk`. La ruta habitual `artifacts/android/dante-quest-debug.apk` también contiene la misma versión. Se instala como actualización de la app existente, con el mismo identificador y firma debug local.
+
 ## Compilar
 
 Requisitos: Node 22 o posterior, Android Studio, JDK 21 y SDK Android API 36. La primera compilacion descarga Gradle y sus dependencias, por lo que requiere internet. El script detecta el JDK incluido en Android Studio y el SDK en la ubicacion habitual de Windows, sin cambiar variables del sistema.
